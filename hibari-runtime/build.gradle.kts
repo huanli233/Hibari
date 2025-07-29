@@ -33,10 +33,15 @@ android {
 }
 
 dependencies {
-
+    api(project(":hibari-ui"))
+    lintPublish(project(":hibari-runtime-lint"))
+    kotlinCompilerPluginClasspath(project(":hibari-compiler"))
+    implementation(libs.kotlinx.collections.immutable)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    implementation(libs.yukireflection)
+    implementation(libs.hiddenapibypass)
     implementation(libs.androidx.collection)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

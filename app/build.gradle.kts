@@ -14,6 +14,8 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        multiDexEnabled = true
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -37,6 +39,9 @@ android {
 
 dependencies {
     implementation(project(":hibari-runtime"))
+    kotlinCompilerPluginClasspath(project(":hibari-compiler"))
+//    implementation(libs.androidx.runtime.android)
+//    implementation(platform("androidx.compose:compose-bom:2025.07.00"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

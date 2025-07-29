@@ -8,4 +8,4 @@ package com.huanli233.hibari.runtime
     AnnotationTarget.TYPE_PARAMETER,
     AnnotationTarget.PROPERTY_GETTER,
 )
-annotation class Composable
+annotation class Tunable

@@ -57,8 +57,8 @@ fun <T> mutableStateOf(
 ): MutableState<T> = createSnapshotMutableState(value, policy)
 
 /**
- * A value holder where reads to the [value] property during the execution of a [Composable]
- * function, the current [RecomposeScope] will be subscribed to changes of that value.
+ * A value holder where reads to the [value] property during the execution of a [Tunable]
+ * function, the current [RetuneScope] will be subscribed to changes of that value.
  *
  * @see [MutableState]
  * @see [mutableStateOf]
@@ -70,16 +70,14 @@ interface State<out T> {
 
 /**
  * Permits property delegation of `val`s using `by` for [State].
- *
- * @sample androidx.compose.runtime.samples.DelegatedReadOnlyStateSample
  */
 @Suppress("NOTHING_TO_INLINE")
 inline operator fun <T> State<T>.getValue(thisObj: Any?, property: KProperty<*>): T = value
 
 /**
- * A mutable value holder where reads to the [value] property during the execution of a [Composable]
- * function, the current [RecomposeScope] will be subscribed to changes of that value. When the
- * [value] property is written to and changed, a recomposition of any subscribed [RecomposeScope]s
+ * A mutable value holder where reads to the [value] property during the execution of a [Tunable]
+ * function, the current [RetuneScope] will be subscribed to changes of that value. When the
+ * [value] property is written to and changed, a recomposition of any subscribed [RetuneScope]s
  * will be scheduled. If [value] is written to with the same value, no recompositions will be
  * scheduled.
  *
@@ -281,7 +279,6 @@ internal open class SnapshotMutableStateImpl<T>(
 /**
  * Create a instance of [MutableList]<T> that is observable and can be snapshot.
  *
- * @sample androidx.compose.runtime.samples.stateListSample
  * @see mutableStateOf
  * @see mutableListOf
  * @see MutableList
@@ -310,7 +307,6 @@ fun <T> Collection<T>.toMutableStateList() = SnapshotStateList<T>().also { it.ad
 /**
  * Create a instance of [MutableMap]<K, V> that is observable and can be snapshot.
  *
- * @sample androidx.compose.runtime.samples.stateMapSample
  * @see mutableStateOf
  * @see mutableMapOf
  * @see MutableMap
@@ -342,7 +338,6 @@ fun <K, V> Iterable<Pair<K, V>>.toMutableStateMap() =
 /**
  * Create a instance of [MutableSet]<T> that is observable and can be snapshot.
  *
- * @sample androidx.compose.runtime.samples.stateListSample
  * @see mutableStateOf
  * @see mutableSetOf
  * @see MutableSet

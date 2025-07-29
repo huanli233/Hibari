@@ -11,6 +11,12 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention").version("0.9.0")
+}
+
+@Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -22,3 +28,6 @@ dependencyResolutionManagement {
 rootProject.name = "Hibari"
 include(":app")
 include(":hibari-runtime")
+include(":hibari-ui")
+include(":hibari-runtime-lint")
+include(":hibari-compiler")
