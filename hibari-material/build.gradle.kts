@@ -1,22 +1,17 @@
 plugins {
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
 }
 
 android {
-    namespace = "com.huanli233.hibari"
+    namespace = "com.huanli233.hibari.material"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.huanli233.hibari"
         minSdk = libs.versions.minSdk.get().toInt()
-        targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
-
-        multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
@@ -38,11 +33,9 @@ android {
 }
 
 dependencies {
-    implementation(project(":hibari-foundation"))
-    implementation(project(":hibari-material"))
+    api(project(":hibari-foundation"))
+    api(project(":hibari-ui"))
     kotlinCompilerPluginClasspath(project(":hibari-compiler"))
-//    implementation(libs.androidx.runtime.android)
-//    implementation(platform("androidx.compose:compose-bom:2025.07.00"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

@@ -17,6 +17,7 @@ import com.huanli233.hibari.ui.HibariFactory
 import com.huanli233.hibari.ui.ViewClassAttribute
 import com.huanli233.hibari.ui.ViewCreatingParams
 import com.huanli233.hibari.ui.flattenToList
+import com.huanli233.hibari.ui.layoutAttributes
 import com.huanli233.hibari.ui.node.Node
 import com.huanli233.hibari.ui.viewAttributes
 import org.xmlpull.v1.XmlPullParser
@@ -35,7 +36,6 @@ class Renderer(
 
     fun render(node: Node): View {
         val modifierAttrs = node.modifier.flattenToList()
-        val modifierViewAttrs = modifierAttrs.viewAttributes()
 
         val viewClass = (modifierAttrs.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
             ?: hibariRuntimeError("The view class cannot be null.")
@@ -43,7 +43,7 @@ class Renderer(
 
         val attrs = createAttributeSet(parent.context, attrXml)
         val view = createViewFromFactory(viewClass, parent.context, attrs) ?: getViewConstructor(viewClass, attrXml != -1)?.build(parent.context, attrs)
-        view?.let { applyAttributes(it, modifierViewAttrs) }
+        view?.let { view -> applyAttributes(view, modifierAttrs.mapNotNull { it as? Attribute<*> }) }
         return view ?: hibariRuntimeError("The view class ${viewClass.name} must have a constructor with two parameters of type Context and AttributeSet to apply attributes.")
     }
 
@@ -122,6 +122,7 @@ class Renderer(
          * @param attrs the attribute set.
          * @return [V] or null.
          */
+        @Suppress("UNCHECKED_CAST")
         fun <V : View> build(
             context: Context,
             attrs: AttributeSet

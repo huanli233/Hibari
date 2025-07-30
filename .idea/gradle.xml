@@ -13,6 +13,7 @@
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/hibari-compiler" />
             <option value="$PROJECT_DIR$/hibari-foundation" />
+            <option value="$PROJECT_DIR$/hibari-material" />
             <option value="$PROJECT_DIR$/hibari-runtime" />
             <option value="$PROJECT_DIR$/hibari-runtime-annotations" />
             <option value="$PROJECT_DIR$/hibari-runtime-lint" />

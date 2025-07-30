@@ -1,11 +1,15 @@
 package com.huanli233.hibari.runtime
 
+import android.app.Activity
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.Choreographer
+import android.view.LayoutInflater
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListUpdateCallback
+import com.highcapable.yukireflection.type.android.LayoutInflater_FactoryClass
+import com.huanli233.hibari.ui.HibariFactory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,7 +25,8 @@ import kotlin.coroutines.coroutineContext
 import kotlin.coroutines.resume
 
 class Retuner(
-    private val coroutineContext: CoroutineContext
+    private val coroutineContext: CoroutineContext,
+    private val factories: List<HibariFactory>
 ) {
 
     private val scope = CoroutineScope(coroutineContext + SupervisorJob())
@@ -68,7 +73,11 @@ class Retuner(
                             nodes
                         }
 
-                        val renderer = Renderer(emptyList(), session.hostView)
+                        val renderer = Renderer(factories.toMutableList().apply {
+                            (session.hostView.context as? Activity)?.let {
+                                add(HibariFactory(it.layoutInflater))
+                            } ?: add(HibariFactory(LayoutInflater.from(session.hostView.context)))
+                        }, session.hostView)
 
                         val updateCallback = object : ListUpdateCallback {
                             override fun onInserted(position: Int, count: Int) {

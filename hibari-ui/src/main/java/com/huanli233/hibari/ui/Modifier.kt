@@ -52,3 +52,9 @@ fun List<Modifier.Element>.viewAttributes(): List<ViewAttribute<*, *>> {
         it as? ViewAttribute<*, *>
     }
 }
+
+fun List<Modifier.Element>.layoutAttributes(): List<LayoutAttribute<*, *>> {
+    return this.mapNotNull {
+        it as? LayoutAttribute<*, *>
+    }
+}

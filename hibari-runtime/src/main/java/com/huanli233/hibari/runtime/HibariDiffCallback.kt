@@ -6,6 +6,7 @@ import com.huanli233.hibari.ui.AttributeKey
 import com.huanli233.hibari.ui.AttrsAttribute
 import com.huanli233.hibari.ui.ViewClassAttribute
 import com.huanli233.hibari.ui.flattenToList
+import com.huanli233.hibari.ui.layoutAttributes
 import com.huanli233.hibari.ui.node.Node
 import com.huanli233.hibari.ui.viewAttributes
 
@@ -32,6 +33,8 @@ class HibariDiffCallback(
 
         val oldViewAttrs = oldMods.viewAttributes().associateBy { it.key }
         val newViewAttrs = newMods.viewAttributes().associateBy { it.key }
+        val oldLayoutAttrs = oldMods.layoutAttributes().associateBy { it.key }
+        val newLayoutAttrs = newMods.layoutAttributes().associateBy { it.key }
 
         val oldViewClass = (oldMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
             ?: hibariRuntimeError("The view class cannot be null.")
@@ -56,6 +59,14 @@ class HibariDiffCallback(
             }
         }
 
+        for (key in newLayoutAttrs.keys) {
+            val oldMod = oldLayoutAttrs.getValue(key)
+            val newMod = newLayoutAttrs.getValue(key)
+            if (!newMod.reuseSupported && oldMod != newMod) {
+                return false
+            }
+        }
+
         return oldMods == newMods
     }
 
@@ -68,6 +79,8 @@ class HibariDiffCallback(
 
         val oldViewAttrs = oldMods.viewAttributes().associateBy { it.key }
         val newViewAttrs = newMods.viewAttributes().associateBy { it.key }
+        val oldLayoutAttrs = oldMods.layoutAttributes().associateBy { it.key }
+        val newLayoutAttrs = newMods.layoutAttributes().associateBy { it.key }
 
         val oldViewClass = (oldMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
             ?: hibariRuntimeError("The view class cannot be null.")
@@ -89,6 +102,18 @@ class HibariDiffCallback(
         for (key in newViewAttrs.keys) {
             val oldMod = oldViewAttrs.getValue(key)
             val newMod = newViewAttrs.getValue(key)
+
+            if (oldMod != newMod) {
+                if (!newMod.reuseSupported) {
+                    return null
+                }
+                changedReusableMods.add(newMod)
+            }
+        }
+
+        for (key in newLayoutAttrs.keys) {
+            val oldMod = oldLayoutAttrs.getValue(key)
+            val newMod = newLayoutAttrs.getValue(key)
 
             if (oldMod != newMod) {
                 if (!newMod.reuseSupported) {

@@ -4,7 +4,7 @@ class Walker {
 
     private val ends = ArrayDeque<Int>()
 
-    fun path() = ends.joinToString(".")
+    fun path() = ends.last().toString()
 
     fun start(endKey: Int) {
         ends.addLast(endKey)

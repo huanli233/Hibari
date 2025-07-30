@@ -38,7 +38,7 @@ data class ViewAttribute<V : View, T>(
     override val value: T,
     override val reuseSupported: Boolean = true
 ) : Attribute<T> {
-    override val key: Any get() = applier
+    override val key: Any get() = applier::class
 
     override fun applyTo(view: View) {
         @Suppress("UNCHECKED_CAST")
@@ -51,7 +51,7 @@ data class LayoutAttribute<LP : ViewGroup.LayoutParams, T>(
     override val value: T,
     override val reuseSupported: Boolean = true
 ) : Attribute<T> {
-    override val key: Any get() = applier
+    override val key: Any get() = applier::class
 
     override fun applyTo(view: View) {
         view.layoutParams?.let {
@@ -59,16 +59,6 @@ data class LayoutAttribute<LP : ViewGroup.LayoutParams, T>(
             applier.apply(it as LP, value)
         }
     }
-}
-
-object TextViewTextApplier : AttributeApplier<TextView, CharSequence> {
-    override fun apply(target: TextView, value: CharSequence) {
-        target.text = value
-    }
-}
-
-fun Modifier.text(text: CharSequence): Modifier {
-    return this.then(ViewAttribute(TextViewTextApplier, text))
 }
 
 data class ViewClassAttribute(val viewClass: Class<out View>) : Modifier.Element {
@@ -85,4 +75,14 @@ data class AttrsAttribute(val attrs: Int) : Modifier.Element {
 
 fun Modifier.attrs(@XmlRes attrs: Int): Modifier {
     return this.then(AttrsAttribute(attrs))
+}
+
+fun <V : View, T> Modifier.thenViewAttribute(value: T, reuseSupported: Boolean = true, applier: V.(T) -> Unit): Modifier {
+    return this.then(
+        ViewAttribute(object : AttributeApplier<V, T> {
+            override fun apply(target: V, value: T) {
+                applier(target, value)
+            }
+        }, value)
+    )
 }

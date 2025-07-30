@@ -2,6 +2,7 @@
 
 package com.huanli233.hibari.compiler.transformer
 
+import com.huanli233.hibari.compiler.logging.error
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.backend.jvm.ir.isInlineClassType
@@ -401,7 +402,7 @@ class TunerParamTransformer(
 
             symbol.owner.isTunable() ->
                 symbol.owner.withTunerParamIfNeeded()
-            // Not a composable call
+            // Not a tunable call
             else -> return this
         }
 
@@ -433,9 +434,7 @@ class TunerParamTransformer(
                         if (arg != null) {
                             newCall.arguments[p.indexInParameters] = arg
                         } else if (hasDefault) {
-                            newCall.arguments[p.indexInParameters] = defaultArgumentFor(p)
-                        } else {
-                            // do nothing
+
                         }
                     }
                 }
