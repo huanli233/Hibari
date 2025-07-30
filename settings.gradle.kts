@@ -28,6 +28,8 @@ dependencyResolutionManagement {
 rootProject.name = "Hibari"
 include(":app")
 include(":hibari-runtime")
+include(":hibari-runtime-annotations")
 include(":hibari-ui")
+include(":hibari-foundation")
 include(":hibari-runtime-lint")
 include(":hibari-compiler")

@@ -2,6 +2,7 @@ package com.huanli233.hibari.ui
 
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 
 data class AttributeKey<T>(val name: String)
 
@@ -10,7 +11,14 @@ interface AttributeHandler<in V : View, in T> {
 }
 
 object AttributeHandlerRegistry {
+
     private val handlers = mutableMapOf<Class<out View>, MutableMap<AttributeKey<*>, AttributeHandler<*, *>>>()
+
+    init {
+        register<TextView, String>(TextViewAttributeKeys.text) { v, t ->
+            v.text = t
+        }
+    }
 
     fun <V : View, T> register(
         viewClass: Class<V>,
@@ -103,7 +111,7 @@ interface Attribute : Modifier.Element {
 }
 
 data class ViewClassAttribute(val viewClass: Class<out View>) : Attribute {
-    override val key get() = AttributeKey<String>("viewClass")
+    override val key get() = AttributeKeys.viewClass
     override val reuseSupported: Boolean get() = false
 }
 

@@ -38,7 +38,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":hibari-runtime"))
+    implementation(project(":hibari-foundation"))
     kotlinCompilerPluginClasspath(project(":hibari-compiler"))
 //    implementation(libs.androidx.runtime.android)
 //    implementation(platform("androidx.compose:compose-bom:2025.07.00"))

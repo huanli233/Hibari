@@ -14,4 +14,8 @@ class Walker {
         ends.removeLast()
     }
 
+    fun clear() {
+        ends.clear()
+    }
+
 }

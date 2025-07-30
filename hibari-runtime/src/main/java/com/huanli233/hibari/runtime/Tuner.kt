@@ -1,9 +1,14 @@
 package com.huanli233.hibari.runtime
 
+import com.huanli233.hibari.runtime.snapshots.Snapshot
+import com.huanli233.hibari.ui.HibariFactory
 import com.huanli233.hibari.ui.node.Node
 import kotlinx.coroutines.sync.Mutex
+import java.lang.RuntimeException
 
-fun hibariRuntimeError(message: String): Nothing = error(message)
+fun hibariRuntimeError(message: String, cause: Throwable? = null): Nothing = throw HibariRuntimeError(message, cause)
+
+class HibariRuntimeError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 class ProvidedValue<T> internal constructor(
     /**
@@ -41,10 +46,11 @@ class ProvidedValue<T> internal constructor(
 
 open class Tuner {
 
-    val mutex = Mutex()
     val walker = Walker()
     val memory = mutableMapOf<String, Any?>()
     internal val localValueStacks = tunationLocalHashMapOf()
+
+    val nodes = mutableListOf<Node>()
 
     fun startGroup(key: Int) {
         walker.start(key)
@@ -92,7 +98,21 @@ open class Tuner {
         content()
     }
 
-    fun emitNode(node: Node) {
+    fun runTunable(tunation: Tunation) {
+        walker.clear()
+        SnapshotManager.clearDependencies(tunation)
+        Snapshot.observe(
+            readObserver = {
+                SnapshotManager.recordRead(tunation, it)
+            }
+        ) {
+            runTunable(tunation.content)
+        }
+    }
 
+    fun emitNode(node: Node): Node {
+        node.key = walker.path()
+        nodes.add(node)
+        return node
     }
 }

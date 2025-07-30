@@ -2,10 +2,8 @@
 
 package com.huanli233.hibari.compiler.transformer
 
-import com.huanli233.hibari.compiler.logging.error
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
-import org.jetbrains.kotlin.backend.common.lower.irBlockBody
 import org.jetbrains.kotlin.backend.jvm.ir.isInlineClassType
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
@@ -16,7 +14,6 @@ import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.declarations.addValueParameter
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.builders.irBlock
-import org.jetbrains.kotlin.ir.builders.irReturn
 import org.jetbrains.kotlin.ir.builders.irTemporary
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
@@ -44,14 +41,11 @@ import org.jetbrains.kotlin.ir.expressions.IrPropertyReference
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
 import org.jetbrains.kotlin.ir.expressions.copyTypeArgumentsFrom
-import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionReferenceImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrSetValueImpl
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrSimpleType
@@ -60,6 +54,7 @@ import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.impl.IrSimpleTypeImpl
 import org.jetbrains.kotlin.ir.types.isMarkedNullable
+import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.types.makeNullable
 import org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols
 import org.jetbrains.kotlin.ir.util.DeepCopySymbolRemapper
@@ -82,7 +77,6 @@ import org.jetbrains.kotlin.ir.util.isPublishedApi
 import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
 import org.jetbrains.kotlin.ir.util.primaryConstructor
-import org.jetbrains.kotlin.ir.util.statements
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
@@ -100,9 +94,10 @@ class TunerParamTransformer(
     messageCollector: MessageCollector,
     private val runTunerCalls: MutableList<IrCall>,
     private val tunerParams: MutableMap<IrSymbol, IrValueParameter>,
-): AbstractHibariLowering(pluginContext, messageCollector) {
+) : AbstractHibariLowering(pluginContext, messageCollector) {
 
     private var inlineLambdaInfo = HibariInlineLambdaLocator(context)
+    private val functionsToSuppressGroupIn = mutableSetOf<IrSymbol>()
 
     override fun visitModuleFragment(declaration: IrModuleFragment): IrModuleFragment {
         inlineLambdaInfo.scan(declaration)
@@ -163,7 +158,8 @@ class TunerParamTransformer(
                 return super.visitBlock(expression)
             }
 
-            val fn = functionRef.symbol.owner as? IrSimpleFunction ?: return super.visitBlock(expression)
+            val fn = functionRef.symbol.owner as? IrSimpleFunction
+                ?: return super.visitBlock(expression)
 
             // Adapter functions are never restartable, but the original function might be.
             val adapterCall = fn.findCallInBody() ?: error("Expected a call in ${fn.dump()}")
@@ -174,11 +170,24 @@ class TunerParamTransformer(
     }
 
     override fun visitFunctionReference(expression: IrFunctionReference): IrExpression {
+        val ownerFn = expression.symbol.owner
+        ownerFn.valueParameters.forEach { parameter ->
+            if (parameter.type.isTunable()) {
+                val argument = expression.getValueArgument(parameter.index)
+                if (argument is IrFunctionExpression) {
+                    if (!argument.function.isTunable()) {
+                        argument.function.copyAnnotationsFrom(parameter.type)
+                    }
+                }
+            }
+        }
+
         if (!expression.type.isKTunableFunction() && !expression.type.isSyntheticTunableFunction()) {
             return super.visitFunctionReference(expression)
         }
 
-        val fn = expression.symbol.owner as? IrSimpleFunction ?: return super.visitFunctionReference(expression)
+        val fn = expression.symbol.owner as? IrSimpleFunction
+            ?: return super.visitFunctionReference(expression)
 
         if (fn.origin != IrDeclarationOrigin.ADAPTER_FOR_CALLABLE_REFERENCE &&
             !inlineLambdaInfo.isInlineFunctionExpression(expression)
@@ -239,7 +248,7 @@ class TunerParamTransformer(
 
         // Adapted function calls created by Kotlin compiler don't copy annotations from the original function
         if (fn.origin == IrDeclarationOrigin.ADAPTER_FOR_CALLABLE_REFERENCE && !fn.isTunable()) {
-            fn.annotations += createComposableAnnotation()
+            fn.annotations += createTunableAnnotation()
         }
 
         return IrFunctionReferenceImpl(
@@ -272,7 +281,8 @@ class TunerParamTransformer(
             statements = buildList {
                 val localParent = currentParent ?: error("No parent found for ${expression.dump()}")
                 val adapterFn = context.irFactory.buildFun {
-                    origin = if (useAdaptedOrigin) IrDeclarationOrigin.ADAPTER_FOR_CALLABLE_REFERENCE else origin
+                    origin =
+                        if (useAdaptedOrigin) IrDeclarationOrigin.ADAPTER_FOR_CALLABLE_REFERENCE else origin
                     name = fn.name
                     visibility = DescriptorVisibilities.LOCAL
                     modality = Modality.FINAL
@@ -281,7 +291,7 @@ class TunerParamTransformer(
                 adapterFn.copyAnnotationsFrom(fn)
 
                 if (!adapterFn.isTunable()) {
-                    adapterFn.annotations += createComposableAnnotation()
+                    adapterFn.annotations += createTunableAnnotation()
                 }
 
                 adapterFn.copyParametersFrom(fn)
@@ -315,30 +325,33 @@ class TunerParamTransformer(
                     }
                 }
 
-                adapterFn.body = context.irFactory.createBlockBody(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET) {
-                    statements.add(
-                        irReturn(
-                            adapterFn.symbol,
-                            irCall(fn.symbol).also { call ->
-                                fn.parameters.forEach {
-                                    call.arguments[it.indexInParameters] = when (it.kind) {
-                                        IrParameterKind.Context -> {
-                                            // Should be unreachable (see CALLABLE_REFERENCE_TO_CONTEXTUAL_DECLARATION)
-                                            error("Context parameters are not supported in function references")
-                                        }
-                                        IrParameterKind.DispatchReceiver,
-                                        IrParameterKind.ExtensionReceiver -> {
-                                            adapterFn.parameters.first { it.kind == IrParameterKind.ExtensionReceiver }
-                                        }
-                                        IrParameterKind.Regular -> {
-                                            adapterFn.parameters.getOrNull(it.indexInParameters)
-                                        }
-                                    }?.let(::irGet)
+                adapterFn.body =
+                    context.irFactory.createBlockBody(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET) {
+                        statements.add(
+                            irReturn(
+                                adapterFn.symbol,
+                                irCall(fn.symbol).also { call ->
+                                    fn.parameters.forEach {
+                                        call.arguments[it.indexInParameters] = when (it.kind) {
+                                            IrParameterKind.Context -> {
+                                                // Should be unreachable (see CALLABLE_REFERENCE_TO_CONTEXTUAL_DECLARATION)
+                                                error("Context parameters are not supported in function references")
+                                            }
+
+                                            IrParameterKind.DispatchReceiver,
+                                            IrParameterKind.ExtensionReceiver -> {
+                                                adapterFn.parameters.first { it.kind == IrParameterKind.ExtensionReceiver }
+                                            }
+
+                                            IrParameterKind.Regular -> {
+                                                adapterFn.parameters.getOrNull(it.indexInParameters)
+                                            }
+                                        }?.let(::irGet)
+                                    }
                                 }
-                            }
+                            )
                         )
-                    )
-                }
+                    }
                 adapterFn.parent = localParent
                 add(adapterFn)
 
@@ -365,17 +378,17 @@ class TunerParamTransformer(
 
     override fun visitLocalDelegatedProperty(declaration: IrLocalDelegatedProperty): IrStatement {
         if (declaration.getter.isComposableDelegatedAccessor()) {
-            declaration.getter.annotations += createComposableAnnotation()
+            declaration.getter.annotations += createTunableAnnotation()
         }
 
         if (declaration.setter?.isComposableDelegatedAccessor() == true) {
-            declaration.setter!!.annotations += createComposableAnnotation()
+            declaration.setter!!.annotations += createTunableAnnotation()
         }
 
         return super.visitLocalDelegatedProperty(declaration)
     }
 
-    private fun createComposableAnnotation() =
+    private fun createTunableAnnotation() =
         IrConstructorCallImpl(
             startOffset = SYNTHETIC_OFFSET,
             endOffset = SYNTHETIC_OFFSET,
@@ -389,12 +402,14 @@ class TunerParamTransformer(
         val newFn = when {
             symbol.owner.isComposableDelegatedAccessor() -> {
                 if (!symbol.owner.isTunable()) {
-                    symbol.owner.annotations += createComposableAnnotation()
+                    symbol.owner.annotations += createTunableAnnotation()
                 }
                 symbol.owner.withTunerParamIfNeeded()
             }
+
             isComposableLambdaInvoke() ->
                 symbol.owner.lambdaInvokeWithTunerParam()
+
             symbol.owner.isTunable() ->
                 symbol.owner.withTunerParamIfNeeded()
             // Not a composable call
@@ -422,6 +437,7 @@ class TunerParamTransformer(
                     IrParameterKind.Context -> {
                         newCall.arguments[p.indexInParameters] = arg
                     }
+
                     IrParameterKind.Regular -> {
                         val hasDefault = newFn.hasDefaultForParam(i)
                         argumentsMissing.add(arg == null && hasDefault)
@@ -525,7 +541,8 @@ class TunerParamTransformer(
     private fun IrSimpleFunction.lambdaInvokeWithTunerParam(): IrSimpleFunction {
         val argCount = parameters.size
         val extraParams = 1
-        val newFnClass = context.irBuiltIns.functionN(argCount + extraParams - /* dispatch receiver */ 1)
+        val newFnClass =
+            context.irBuiltIns.functionN(argCount + extraParams - /* dispatch receiver */ 1)
         val newInvoke = newFnClass.functions.first {
             it.name == OperatorNameConventions.INVOKE
         }
@@ -555,7 +572,10 @@ class TunerParamTransformer(
         val symbolRemapper = DeepCopySymbolRemapper()
         acceptVoid(symbolRemapper)
         val typeRemapper = createTypeRemapper(symbolRemapper)
-        return (transform(DeepCopyPreservingMetadata(symbolRemapper, typeRemapper), null) as T).patchDeclarationParents(initialParent)
+        return (transform(
+            DeepCopyPreservingMetadata(symbolRemapper, typeRemapper),
+            null
+        ) as T).patchDeclarationParents(initialParent)
     }
 
     private fun IrSimpleFunction.copyWithTunerParam(): IrSimpleFunction {
@@ -601,6 +621,7 @@ class TunerParamTransformer(
             }
 
             tunerParams[fn.symbol] = tunerParam
+            val suppressGroupInjection = functionsToSuppressGroupIn.contains(this.symbol)
 
             // update parameter types so they are ready to accept the default values
             fn.parameters.forEach { param ->
@@ -630,25 +651,11 @@ class TunerParamTransformer(
                 }
 
                 override fun visitCall(expression: IrCall): IrExpression {
-                    val owner = expression.symbol.owner
-                    if (owner.isGetter) {
-                        val property = owner.correspondingPropertySymbol?.owner
-                        if (property != null &&
-                            property.name.asString() == "currentTuner" &&
-                            property.parent.let { it is IrFile && it.packageFqName.asString() == "com.huanli233.hibari.runtime" }
-                        ) {
-                            return irGet(tunerParam)
-                        }
-                    }
-
+                    expression.transformChildrenVoid(this)
                     val transformedCall = if (!isNestedScope) {
                         expression.withTunerParamIfNeeded(tunerParam)
                     } else {
                         expression
-                    }
-
-                    if (transformedCall === expression) {
-                        return super.visitCall(expression)
                     }
 
                     val emitNode = context.referenceFunctions(
@@ -658,27 +665,74 @@ class TunerParamTransformer(
                             callableName = Name.identifier("emitNode")
                         )
                     )
-                    if (transformedCall.symbol.owner.isTunable() || transformedCall.symbol == emitNode.singleOrNull()) {
-                        val key = keyGenerator.getAndIncrement()
-                        val keyConst = IrConstImpl.int(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, context.irBuiltIns.intType, key)
+                    val wasTransformed = transformedCall !== expression
+                    val isEmitNodeCall = expression.symbol in emitNode
+                    val owner = expression.symbol.owner
 
-                        val startGroupCall = irCall(tunerStartGroupFunc).apply {
-                            dispatchReceiver = irGet(tunerParam)
-                            putValueArgument(0, keyConst)
-                        }
+                    val isCurrentTunerCall = if (owner.isGetter) {
+                        val property = owner.correspondingPropertySymbol?.owner
+                        property != null &&
+                                property.name.asString() == "currentTuner" &&
+                                property.symbol == context.referenceProperties(
+                            CallableId(
+                                FqName("com.huanli233.hibari.runtime"), null,
+                                Name.identifier("currentTuner")
+                            )
+                        ).singleOrNull()
+                    } else {
+                        false
+                    }
 
-                        val endGroupCall = irCall(tunerEndGroupFunc).apply {
-                            dispatchReceiver = irGet(tunerParam)
-                            putValueArgument(0, IrConstImpl.int(SYNTHETIC_OFFSET, SYNTHETIC_OFFSET, context.irBuiltIns.intType, key))
-                        }
+                    if (!suppressGroupInjection && !isCurrentTunerCall && (wasTransformed || isEmitNodeCall)) {
+                        return DeclarationIrBuilder(
+                            context,
+                            currentScope!!.scope.scopeOwnerSymbol
+                        ).irBlock(
+                            startOffset = expression.startOffset,
+                            endOffset = expression.endOffset,
+                            resultType = transformedCall.type
+                        ) {
+                            val key = keyGenerator.getAndIncrement()
+                            val keyConst = IrConstImpl.int(
+                                SYNTHETIC_OFFSET,
+                                SYNTHETIC_OFFSET,
+                                context.irBuiltIns.intType,
+                                key
+                            )
 
-                        return DeclarationIrBuilder(context, expression.symbol).irBlock {
+                            val startGroupCall = irCall(tunerStartGroupFunc).apply {
+                                dispatchReceiver = irGet(tunerParam)
+                                putValueArgument(0, keyConst)
+                            }
                             +startGroupCall
-                            val temporary = irTemporary(transformedCall)
+
+                            val resultTmp = if (transformedCall.type.isUnit()) {
+                                +transformedCall
+                                null
+                            } else {
+                                irTemporary(transformedCall)
+                            }
+
+                            val endGroupCall = irCall(tunerEndGroupFunc).apply {
+                                dispatchReceiver = irGet(tunerParam)
+                                putValueArgument(
+                                    0,
+                                    IrConstImpl.int(
+                                        SYNTHETIC_OFFSET,
+                                        SYNTHETIC_OFFSET,
+                                        context.irBuiltIns.intType,
+                                        key
+                                    )
+                                )
+                            }
                             +endGroupCall
-                            +irGet(temporary)
+
+                            if (resultTmp != null) {
+                                +irGet(resultTmp)
+                            }
                         }
                     }
+
                     return transformedCall
                 }
             })
@@ -689,7 +743,7 @@ class TunerParamTransformer(
         if (expression.type.isTunable()) {
             val function = expression.function
             if (!function.isTunable()) {
-                function.annotations += createComposableAnnotation()
+                function.annotations += createTunableAnnotation()
             }
         }
         return super.visitFunctionExpression(expression)
@@ -697,22 +751,16 @@ class TunerParamTransformer(
 
     override fun visitCall(expression: IrCall): IrExpression {
         val ownerFn = expression.symbol.owner
-        ownerFn.valueParameters.forEach { parameter ->
-            if (parameter.type.isTunable()) {
-                val argument = expression.getValueArgument(parameter.index)
-                if (argument is IrFunctionExpression) {
-                    if (!argument.function.isTunable()) {
-                        argument.function.annotations += createComposableAnnotation()
-                    }
-                }
-            }
-        }
 
-        if (
-            ownerFn.name.asString() == "runTunable" &&
-            ownerFn.parentAsClass.fqNameWhenAvailable?.asString() == "com.huanli233.hibari.runtime.Tuner"
-        ) {
+        val isRunTunable = ownerFn.name.asString() == "runTunable" && ownerFn.valueParameters.getOrNull(0)?.type?.isTunable() == true &&
+                ownerFn.parentAsClass.fqNameWhenAvailable?.asString() == "com.huanli233.hibari.runtime.Tuner"
+
+        if (isRunTunable) {
             runTunerCalls.add(expression)
+            val blockArgument = expression.getValueArgument(ownerFn.valueParameters.last().index)
+            if (blockArgument is IrFunctionExpression) {
+                functionsToSuppressGroupIn.add(blockArgument.function.symbol)
+            }
         }
 
         return super.visitCall(expression)

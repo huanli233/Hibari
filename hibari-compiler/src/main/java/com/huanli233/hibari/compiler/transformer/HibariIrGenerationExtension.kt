@@ -13,14 +13,19 @@ import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.declarations.name
 import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionReference
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.getClass
+import org.jetbrains.kotlin.ir.util.copyAnnotationsFrom
 import org.jetbrains.kotlin.ir.util.dump
+import org.jetbrains.kotlin.ir.util.dumpKotlinLike
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.isGetter
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
@@ -28,7 +33,11 @@ import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
+import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.util.OperatorNameConventions
+import kotlin.collections.plus
 import kotlin.math.exp
 
 class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGenerationExtension {
@@ -39,6 +48,39 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
     ) {
         val runTunerCalls = mutableListOf<IrCall>()
         val tunerParams = mutableMapOf<IrSymbol, IrValueParameter>()
+        moduleFragment.transformChildrenVoid(
+            object : IrElementTransformerVoid() {
+                override fun visitFunctionReference(expression: IrFunctionReference): IrExpression {
+                    val ownerFn = expression.symbol.owner
+                    ownerFn.valueParameters.forEach { parameter ->
+                        if (parameter.type.isTunable()) {
+                            val argument = expression.getValueArgument(parameter.index)
+                            if (argument is IrFunctionExpression) {
+                                if (!argument.function.isTunable()) {
+                                    argument.function.copyAnnotationsFrom(parameter.type)
+                                }
+                            }
+                        }
+                    }
+                    return super.visitFunctionReference(expression)
+                }
+
+                override fun visitConstructorCall(expression: IrConstructorCall): IrExpression {
+                    val ownerFn = expression.symbol.owner
+                    ownerFn.valueParameters.forEach { parameter ->
+                        if (parameter.type.isTunable()) {
+                            val argument = expression.getValueArgument(parameter.index)
+                            if (argument is IrFunctionExpression) {
+                                if (!argument.function.isTunable()) {
+                                    argument.function.copyAnnotationsFrom(parameter.type)
+                                }
+                            }
+                        }
+                    }
+                    return super.visitConstructorCall(expression)
+                }
+            }
+        )
         moduleFragment.transformChildrenVoid(TunerParamTransformer(pluginContext, messageCollector, runTunerCalls, tunerParams))
         moduleFragment.transformChildrenVoid(TunableTypeTransformer(pluginContext, messageCollector,
             TunableTypeRemapper(pluginContext, tunerType = pluginContext.referenceClass(TUNER_CLASS_ID)?.defaultType ?: error("Cannot find $TUNER_CLASS_ID"))))
@@ -52,13 +94,11 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                         val property = owner.correspondingPropertySymbol?.owner
                         if (property != null &&
                             property.name.asString() == "currentTuner" &&
-                            property.parent.let { it is IrFile && it.packageFqName.asString() == "com.huanli233.hibari.runtime" }
+                            property.symbol == pluginContext.referenceProperties(CallableId(FqName("com.huanli233.hibari.runtime"), null,
+                                Name.identifier("currentTuner")
+                            )).singleOrNull()
                         ) {
-                            (currentFunction?.irElement as? IrFunction)?.let { irFunction ->
-                                tunerParams[irFunction.symbol]?.let {
-                                    return DeclarationIrBuilder(pluginContext, expression.symbol).irGet(it)
-                                }
-                            }
+                            return expression.getValueArgument(0) ?: error("currentTuner should have a value argument")
                         }
                     }
 
@@ -71,9 +111,11 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                         val type = lambda.type
 
                         val invokeSymbol = type.getClass()?.functions
-                            ?.first { it.name == OperatorNameConventions.INVOKE }?.symbol ?: error(
-                            "Expected lambda to have invoke method"
-                        )
+                            ?.firstOrNull { it.name == OperatorNameConventions.INVOKE }?.symbol ?: let {
+                            error(
+                                "Expected lambda to have invoke method"
+                            )
+                        }
 
                         return IrCallImpl.fromSymbolOwner(
                             startOffset = call.startOffset,
@@ -88,15 +130,15 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                 }
             }
         )
-        moduleFragment.acceptChildrenVoid(
-            object : IrVisitorVoid() {
-                override fun visitFile(declaration: IrFile) {
-                    super.visitFile(declaration)
-                    if (declaration.name == "Tunables.kt") {
+//        moduleFragment.acceptChildrenVoid(
+//            object : IrVisitorVoid() {
+//                override fun visitFile(declaration: IrFile) {
+//                    super.visitFile(declaration)
+//                    if (declaration.name == "TestActivity.kt") {
 //                        messageCollector.error(declaration.dump())
-                    }
-                }
-            }
-        )
+//                    }
+//                }
+//            }
+//        )
     }
 }

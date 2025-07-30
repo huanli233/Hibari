@@ -46,6 +46,4 @@ fun main() {
         println("UUID: $value")
     }
 
-    tuner.runTunable(tunable)
-    tuner.runTunable(tunable)
 }

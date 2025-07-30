@@ -34,6 +34,9 @@ android {
 
 dependencies {
     api(project(":hibari-ui"))
+    api(project(":hibari-runtime-annotations"))
+    implementation(libs.yukireflection)
+    implementation(libs.hiddenapibypass)
     lintPublish(project(":hibari-runtime-lint"))
     kotlinCompilerPluginClasspath(project(":hibari-compiler"))
     implementation(libs.kotlinx.collections.immutable)
