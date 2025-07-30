@@ -1,8 +1,11 @@
 package com.huanli233.hibari.runtime
 
+import android.util.Log
 import com.huanli233.hibari.runtime.snapshots.Snapshot
 import com.huanli233.hibari.ui.HibariFactory
 import com.huanli233.hibari.ui.node.Node
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import java.lang.RuntimeException
 
@@ -46,8 +49,10 @@ class ProvidedValue<T> internal constructor(
 
 open class Tuner {
 
+    val coroutineScope = CoroutineScope(Dispatchers.Main)
+
     val walker = Walker()
-    val memory = mutableMapOf<String, Any?>()
+    var memory = mutableMapOf<String, Any?>()
     internal val localValueStacks = tunationLocalHashMapOf()
 
     val nodes = mutableListOf<Node>()

@@ -357,3 +357,8 @@ fun <T> mutableStateSetOf(): SnapshotStateSet<T> = SnapshotStateSet()
 @StateFactoryMarker
 fun <T> mutableStateSetOf(vararg elements: T): SnapshotStateSet<T> =
     SnapshotStateSet<T>().also { it.addAll(elements.toSet()) }
+
+@Tunable
+fun <T> rememberUpdatedState(newValue: T): State<T> = remember {
+    mutableStateOf(newValue)
+}.apply { value = newValue }

@@ -8,4 +8,5 @@ class Tunation(
     val content: @Tunable () -> Unit
 ) {
     var previousNodeList: List<Node> = emptyList()
+    var memory: MutableMap<String, Any?> = mutableMapOf()
 }

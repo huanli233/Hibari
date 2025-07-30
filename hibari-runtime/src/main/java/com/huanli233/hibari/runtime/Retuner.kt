@@ -68,6 +68,7 @@ class Retuner(
                     sessionsToTune.forEach { session ->
                         ensureActive()
                         val tuner = Tuner()
+                        tuner.memory = session.memory
                         val newNodeList = tuner.run {
                             runTunable(session)
                             nodes
@@ -111,6 +112,7 @@ class Retuner(
                         val diffResult = DiffUtil.calculateDiff(HibariDiffCallback(session.previousNodeList, newNodeList))
                         diffResult.dispatchUpdatesTo(updateCallback)
 
+                        session.memory = tuner.memory
                         session.previousNodeList = newNodeList
                     }
                 }
