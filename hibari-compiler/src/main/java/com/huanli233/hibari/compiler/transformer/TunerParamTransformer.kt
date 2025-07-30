@@ -170,17 +170,6 @@ class TunerParamTransformer(
     }
 
     override fun visitFunctionReference(expression: IrFunctionReference): IrExpression {
-        val ownerFn = expression.symbol.owner
-        ownerFn.valueParameters.forEach { parameter ->
-            if (parameter.type.isTunable()) {
-                val argument = expression.getValueArgument(parameter.index)
-                if (argument is IrFunctionExpression) {
-                    if (!argument.function.isTunable()) {
-                        argument.function.copyAnnotationsFrom(parameter.type)
-                    }
-                }
-            }
-        }
 
         if (!expression.type.isKTunableFunction() && !expression.type.isSyntheticTunableFunction()) {
             return super.visitFunctionReference(expression)

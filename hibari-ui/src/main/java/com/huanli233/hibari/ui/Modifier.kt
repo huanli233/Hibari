@@ -40,11 +40,15 @@ private class CombinedModifier(
         if (other === Modifier) this else CombinedModifier(this, other)
 }
 
-fun Modifier.flattenToList(): List<Attribute> {
+fun Modifier.flattenToList(): List<Modifier.Element> {
     return this.foldIn(mutableListOf()) { acc, element ->
-        if (element is Attribute) {
-            acc += element
-        }
+        acc += element
         acc
+    }
+}
+
+fun List<Modifier.Element>.viewAttributes(): List<ViewAttribute<*, *>> {
+    return this.mapNotNull {
+        it as? ViewAttribute<*, *>
     }
 }

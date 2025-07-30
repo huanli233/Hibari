@@ -18,17 +18,22 @@ import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionReference
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
+import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.getClass
+import org.jetbrains.kotlin.ir.util.SYNTHETIC_OFFSET
 import org.jetbrains.kotlin.ir.util.copyAnnotationsFrom
+import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.isGetter
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
+import org.jetbrains.kotlin.ir.util.primaryConstructor
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
@@ -50,6 +55,34 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
         val tunerParams = mutableMapOf<IrSymbol, IrValueParameter>()
         moduleFragment.transformChildrenVoid(
             object : IrElementTransformerVoid() {
+                val tunableAnnotation: IrClassSymbol = pluginContext.referenceClass(TUNABLE_ANNOTATION_ID)
+                    ?: error("Cannot find annotation class ${TUNABLE_ANNOTATION_ID.asSingleFqName()}")
+
+                private fun createTunableAnnotation() =
+                    IrConstructorCallImpl(
+                        startOffset = SYNTHETIC_OFFSET,
+                        endOffset = SYNTHETIC_OFFSET,
+                        type = tunableAnnotation.owner.defaultType,
+                        symbol = tunableAnnotation.owner.primaryConstructor!!.symbol,
+                        typeArgumentsCount = 0,
+                        constructorTypeArgumentsCount = 0
+                    )
+
+                override fun visitCall(expression: IrCall): IrExpression {
+                    val ownerFn = expression.symbol.owner
+                    ownerFn.valueParameters.forEach { parameter ->
+                        if (parameter.type.isTunable()) {
+                            val argument = expression.getValueArgument(parameter.index)
+                            if (argument is IrFunctionExpression) {
+                                if (!argument.function.isTunable()) {
+                                    argument.function.annotations += createTunableAnnotation()
+                                }
+                            }
+                        }
+                    }
+                    return super.visitCall(expression)
+                }
+
                 override fun visitFunctionReference(expression: IrFunctionReference): IrExpression {
                     val ownerFn = expression.symbol.owner
                     ownerFn.valueParameters.forEach { parameter ->
@@ -57,7 +90,7 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                             val argument = expression.getValueArgument(parameter.index)
                             if (argument is IrFunctionExpression) {
                                 if (!argument.function.isTunable()) {
-                                    argument.function.copyAnnotationsFrom(parameter.type)
+                                    argument.function.annotations += createTunableAnnotation()
                                 }
                             }
                         }
@@ -72,7 +105,7 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                             val argument = expression.getValueArgument(parameter.index)
                             if (argument is IrFunctionExpression) {
                                 if (!argument.function.isTunable()) {
-                                    argument.function.copyAnnotationsFrom(parameter.type)
+                                    argument.function.annotations += createTunableAnnotation()
                                 }
                             }
                         }

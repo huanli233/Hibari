@@ -2,7 +2,6 @@ package com.huanli233.hibari.runtime
 
 import android.content.Context
 import android.util.AttributeSet
-import android.util.Log
 import android.util.Xml
 import android.view.View
 import android.view.ViewGroup
@@ -13,15 +12,13 @@ import com.highcapable.yukireflection.type.android.AttributeSetClass
 import com.highcapable.yukireflection.type.android.ContextClass
 import com.huanli233.hibari.runtime.bypass.XmlBlockBypass
 import com.huanli233.hibari.ui.Attribute
-import com.huanli233.hibari.ui.AttributeHandlerRegistry
-import com.huanli233.hibari.ui.AttributeKeys
+import com.huanli233.hibari.ui.AttrsAttribute
 import com.huanli233.hibari.ui.HibariFactory
-import com.huanli233.hibari.ui.ViewAttribute
 import com.huanli233.hibari.ui.ViewClassAttribute
 import com.huanli233.hibari.ui.ViewCreatingParams
 import com.huanli233.hibari.ui.flattenToList
 import com.huanli233.hibari.ui.node.Node
-import com.huanli233.hibari.ui.viewClass
+import com.huanli233.hibari.ui.viewAttributes
 import org.xmlpull.v1.XmlPullParser
 import java.lang.reflect.Constructor
 import java.util.concurrent.atomic.AtomicInteger
@@ -37,30 +34,22 @@ class Renderer(
     }
 
     fun render(node: Node): View {
-        val modifierAttrs = node.modifier.flattenToList().associateBy { it.key }
+        val modifierAttrs = node.modifier.flattenToList()
+        val modifierViewAttrs = modifierAttrs.viewAttributes()
 
-        Log.d("huanli233", modifierAttrs.keys.joinToString())
-
-        val viewClass = (modifierAttrs[AttributeKeys.viewClass] as? ViewClassAttribute)?.viewClass
+        val viewClass = (modifierAttrs.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
             ?: hibariRuntimeError("The view class cannot be null.")
-        val id = (modifierAttrs[AttributeKeys.id] as? ViewAttribute<*>)?.value as? String
-        val attrXml = ((modifierAttrs[AttributeKeys.attributeSet] as? ViewAttribute<*>)?.value as? Int) ?: -1
+        val attrXml = (modifierAttrs.firstOrNull { it is AttrsAttribute } as? AttrsAttribute)?.attrs ?: -1
 
         val attrs = createAttributeSet(parent.context, attrXml)
-        val view = createViewFromFactory(viewClass, id, parent.context, attrs) ?: getViewConstructor(viewClass, attrXml != -1)?.build(parent.context, attrs)
-        view?.let { applyAttributes(it, node.modifier.flattenToList()) }
+        val view = createViewFromFactory(viewClass, parent.context, attrs) ?: getViewConstructor(viewClass, attrXml != -1)?.build(parent.context, attrs)
+        view?.let { applyAttributes(it, modifierViewAttrs) }
         return view ?: hibariRuntimeError("The view class ${viewClass.name} must have a constructor with two parameters of type Context and AttributeSet to apply attributes.")
     }
 
-    fun applyAttributes(view: View, attrs: List<Attribute>) {
+    fun applyAttributes(view: View, attrs: List<Attribute<*>>) {
         attrs.forEach {
-            AttributeHandlerRegistry.find(view::class.java, it.key)?.let { handler ->
-                when (it) {
-                    is ViewAttribute<*> -> {
-                        handler.apply(view, it.value as Any)
-                    }
-                }
-            }
+            it.applyTo(view)
         }
     }
 
@@ -89,7 +78,7 @@ class Renderer(
         }
     }
 
-    private fun <V : View> createViewFromFactory(viewClass: Class<V>, id: String?, context: Context, attrs: AttributeSet): V? {
+    private fun <V : View> createViewFromFactory(viewClass: Class<V>, context: Context, attrs: AttributeSet): V? {
         var processed: V? = null
         factories.forEach { factory ->
             val params = ViewCreatingParams(viewClass as Class<*>, attrs)

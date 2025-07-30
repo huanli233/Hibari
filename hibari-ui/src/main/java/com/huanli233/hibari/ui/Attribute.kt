@@ -3,104 +3,27 @@ package com.huanli233.hibari.ui
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.annotation.XmlRes
 
 data class AttributeKey<T>(val name: String)
 
-interface AttributeHandler<in V : View, in T> {
-    fun apply(view: V, value: T)
-}
-
-object AttributeHandlerRegistry {
-
-    private val handlers = mutableMapOf<Class<out View>, MutableMap<AttributeKey<*>, AttributeHandler<*, *>>>()
-
-    init {
-        register<TextView, String>(TextViewAttributeKeys.text) { v, t ->
-            v.text = t
-        }
-    }
-
-    fun <V : View, T> register(
-        viewClass: Class<V>,
-        attributeName: AttributeKey<*>,
-        handler: AttributeHandler<V, T>
-    ) {
-        handlers.getOrPut(viewClass) { mutableMapOf() }[attributeName] = handler
-    }
-
-    inline fun <reified V : View, T> register(
-        attributeName: AttributeKey<*>,
-        crossinline block: (view: V, value: T) -> Unit
-    ) {
-        register(V::class.java, attributeName, object : AttributeHandler<V, T> {
-            override fun apply(view: V, value: T) {
-                block(view, value)
-            }
-        })
-    }
-
-    fun find(viewClass: Class<out View>, attributeName: AttributeKey<*>): AttributeHandler<View, Any>? {
-        var currentClass: Class<*>? = viewClass
-        while (currentClass != null && View::class.java.isAssignableFrom(currentClass)) {
-            handlers[currentClass]?.get(attributeName)?.let {
-                @Suppress("UNCHECKED_CAST")
-                return it as AttributeHandler<View, Any>
-            }
-            currentClass = currentClass.superclass
-        }
-        return null
-    }
-}
-
-interface LayoutAttributeHandler<in V : ViewGroup.LayoutParams, in T> {
-    fun apply(view: V, value: T)
-}
-
-object LayoutAttributeHandlerRegistry {
-    private val handlers = mutableMapOf<Class<out ViewGroup.LayoutParams>, MutableMap<AttributeKey<*>, LayoutAttributeHandler<*, *>>>()
-
-    fun <V : ViewGroup.LayoutParams, T> register(
-        viewClass: Class<V>,
-        attributeName: AttributeKey<*>,
-        handler: LayoutAttributeHandler<V, T>
-    ) {
-        handlers.getOrPut(viewClass) { mutableMapOf() }[attributeName] = handler
-    }
-
-    inline fun <reified V : ViewGroup.LayoutParams, T> register(
-        attributeName: AttributeKey<*>,
-        crossinline block: (view: V, value: T) -> Unit
-    ) {
-        register(V::class.java, attributeName, object : LayoutAttributeHandler<V, T> {
-            override fun apply(view: V, value: T) {
-                block(view, value)
-            }
-        })
-    }
-
-    fun find(lparamsClass: Class<out ViewGroup.LayoutParams>, attributeName: AttributeKey<*>): AttributeHandler<View, Any>? {
-        var currentClass: Class<*>? = lparamsClass
-        while (currentClass != null && View::class.java.isAssignableFrom(currentClass)) {
-            handlers[currentClass]?.get(attributeName)?.let {
-                @Suppress("UNCHECKED_CAST")
-                return it as AttributeHandler<View, Any>
-            }
-            currentClass = currentClass.superclass
-        }
-        return null
-    }
+interface AttributeApplier<in V, in T> {
+    fun apply(target: V, value: T)
 }
 
 /**
  * An atomic configuration unit for a LayoutNode, which will be translated
  * into a View property or a specific setup action by the Renderer.
  */
-interface Attribute : Modifier.Element {
+interface Attribute<T> : Modifier.Element {
+    val value: T
     /**
      * A unique key for this attribute type. Used during diffing to identify
      * if an attribute of the same type already exists.
      */
-    val key: AttributeKey<*>
+    val key: Any
+
+    fun applyTo(view: View)
 
     /**
      * If true, the Renderer can update the View with the new attribute value
@@ -110,21 +33,56 @@ interface Attribute : Modifier.Element {
     val reuseSupported: Boolean
 }
 
-data class ViewClassAttribute(val viewClass: Class<out View>) : Attribute {
-    override val key get() = AttributeKeys.viewClass
-    override val reuseSupported: Boolean get() = false
+data class ViewAttribute<V : View, T>(
+    val applier: AttributeApplier<V, T>,
+    override val value: T,
+    override val reuseSupported: Boolean = true
+) : Attribute<T> {
+    override val key: Any get() = applier
+
+    override fun applyTo(view: View) {
+        @Suppress("UNCHECKED_CAST")
+        applier.apply(view as V, value)
+    }
 }
 
-data class ViewAttribute<T>(
-    override val key: AttributeKey<T>,
-    val value: T?,
+data class LayoutAttribute<LP : ViewGroup.LayoutParams, T>(
+    val applier: AttributeApplier<LP, T>,
+    override val value: T,
     override val reuseSupported: Boolean = true
-) : Attribute
+) : Attribute<T> {
+    override val key: Any get() = applier
 
-fun <T> Modifier.attribute(key: AttributeKey<T>, value: T?, reuseSupported: Boolean = true): Modifier {
-    return this.then(ViewAttribute(key, value, reuseSupported))
+    override fun applyTo(view: View) {
+        view.layoutParams?.let {
+            @Suppress("UNCHECKED_CAST")
+            applier.apply(it as LP, value)
+        }
+    }
+}
+
+object TextViewTextApplier : AttributeApplier<TextView, CharSequence> {
+    override fun apply(target: TextView, value: CharSequence) {
+        target.text = value
+    }
+}
+
+fun Modifier.text(text: CharSequence): Modifier {
+    return this.then(ViewAttribute(TextViewTextApplier, text))
+}
+
+data class ViewClassAttribute(val viewClass: Class<out View>) : Modifier.Element {
+    val key: Any = ViewClassAttribute::class
 }
 
 fun Modifier.viewClass(clazz: Class<out View>): Modifier {
     return this.then(ViewClassAttribute(clazz))
+}
+
+data class AttrsAttribute(val attrs: Int) : Modifier.Element {
+    val key: Any = AttrsAttribute::class
+}
+
+fun Modifier.attrs(@XmlRes attrs: Int): Modifier {
+    return this.then(AttrsAttribute(attrs))
 }
