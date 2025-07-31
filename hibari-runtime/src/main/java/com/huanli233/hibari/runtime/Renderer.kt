@@ -38,6 +38,8 @@ class Renderer(
         private val viewConstructors = mutableMapOf<String, ViewConstructor>()
         internal var attrSets = mutableMapOf<Int, AttributeSet>()
 
+        val hibariNodeKey = ViewCompat.generateViewId()
+
         val viewIds = mutableMapOf<String, Int>()
         /**
          * Generate view id from [id].
@@ -102,6 +104,8 @@ class Renderer(
                 LayoutParamsWrapContent,
                 LayoutParamsWrapContent
             )
+
+            invokeSetKeyedTag(view, hibariNodeKey, node.key)
 
             applyAttributes(view, modifierAttrs.mapNotNull { it as? Attribute<*> })
             modifierAttrs.filter { it is RefModifier }.map { (it as? RefModifier)?.block }.forEach {

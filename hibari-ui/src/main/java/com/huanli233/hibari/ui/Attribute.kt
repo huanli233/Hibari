@@ -132,6 +132,14 @@ fun <V : View, T> Modifier.thenViewAttribute(key: Any, value: T, reuseSupported:
     )
 }
 
+fun <V : View, T> Modifier.thenViewAttributeIfNotNull(key: Any, value: T?, reuseSupported: Boolean = true, block: V.(T) -> Unit): Modifier {
+    return if (value != null) {
+        this.thenViewAttribute(key, value, applier = block)
+    } else {
+        this
+    }
+}
+
 fun <V : View> Modifier.thenUnitViewAttribute(key: Any, reuseSupported: Boolean = true, applier: V.() -> Unit): Modifier {
     return this.then(
         ViewAttribute(key, object : AttributeApplier<V, Unit> {
