@@ -100,3 +100,9 @@ fun Modifier.singleLine(singleLine: Boolean): Modifier {
         isSingleLine = it
     }
 }
+
+fun Modifier.hint(hint: CharSequence): Modifier {
+    return this.thenViewAttribute<TextView, CharSequence>(hint) {
+        this.hint = it
+    }
+}
