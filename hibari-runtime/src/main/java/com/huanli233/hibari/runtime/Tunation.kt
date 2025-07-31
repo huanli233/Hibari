@@ -5,8 +5,25 @@ import com.huanli233.hibari.ui.node.Node
 
 class Tunation(
     val hostView: ViewGroup,
-    val content: @Tunable () -> Unit
+    var content: @Tunable () -> Unit,
+    var tuner: Tuner? = null
 ) {
-    var previousNodeList: List<Node> = emptyList()
+
+    constructor(
+        hostView: ViewGroup,
+        content: @Tunable () -> Unit,
+        tuner: Tuner? = null,
+        parent: Tunation
+    ) : this(hostView, content, tuner) {
+        this.localValueStacks = parent.localValueStacks
+        this.memory = parent.memory
+    }
+
+    var localValueStacks: TunationLocalsHashMap = tunationLocalHashMapOf()
+    var lastTree: List<Node> = emptyList()
     var memory: MutableMap<String, Any?> = mutableMapOf()
+
+    fun dispose() {
+        SnapshotManager.clearDependencies(this)
+    }
 }

@@ -38,12 +38,5 @@ fun nonTunableCaller() {
 }
 
 fun main() {
-    val tuner = Tuner()
-    val test = MyTest()
-
-    val tunable = @Tunable {
-        val value = remember { UUID.randomUUID().toString() }
-        println("UUID: $value")
-    }
 
 }

@@ -40,6 +40,7 @@ android {
 dependencies {
     implementation(project(":hibari-foundation"))
     implementation(project(":hibari-material"))
+    implementation(project(":hibari-recyclerview"))
     kotlinCompilerPluginClasspath(project(":hibari-compiler"))
 //    implementation(libs.androidx.runtime.android)
 //    implementation(platform("androidx.compose:compose-bom:2025.07.00"))

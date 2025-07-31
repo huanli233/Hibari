@@ -8,7 +8,7 @@ import com.huanli233.hibari.ui.node.Node
 @Tunable
 fun Node(
     modifier: Modifier = Modifier,
-    children: List<Node> = emptyList()
+    content: @Tunable () -> Unit = {}
 ) = currentTuner.emitNode(
-    Node(modifier, children)
+    Node(modifier), content
 )

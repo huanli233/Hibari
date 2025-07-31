@@ -4,12 +4,17 @@ import android.view.ViewGroup
 
 object HibariApplier {
 
-    fun applyTo(view: ViewGroup, content: @Tunable () -> Unit) {
+    fun applyTo(
+        view: ViewGroup,
+        tuner: Tuner? = null,
+        content: @Tunable () -> Unit
+    ) {
         val tunation = Tunation(
             view,
-            content = content
+            content = content,
+            tuner = tuner
         )
-        GlobalRecomposer.scheduleTune(tunation)
+        GlobalRetuner.scheduleTune(tunation)
     }
 
 }

@@ -6,18 +6,22 @@ import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.declarations.name
+import org.jetbrains.kotlin.ir.expressions.IrBody
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrExpressionBody
 import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionReference
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.fromSymbolOwner
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
@@ -30,6 +34,7 @@ import org.jetbrains.kotlin.ir.util.copyAnnotationsFrom
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
+import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.isGetter
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
@@ -42,6 +47,7 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.util.OperatorNameConventions
+import java.util.UUID
 import kotlin.collections.plus
 import kotlin.math.exp
 
@@ -68,6 +74,30 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                         constructorTypeArgumentsCount = 0
                     )
 
+                private val targetPropertyFqn = "com.huanli233.hibari.ui.uniqueKey"
+
+                private fun generateUUIDConstant(original: IrCall): IrConstImpl {
+                    val uuid = UUID.randomUUID().toString()
+
+                    return IrConstImpl.string(
+                        startOffset = original.startOffset,
+                        endOffset = original.endOffset,
+                        type = pluginContext.irBuiltIns.stringType,
+                        value = uuid
+                    )
+                }
+
+                override fun visitValueParameter(declaration: IrValueParameter): IrStatement {
+                    (declaration.defaultValue?.expression as? IrFunctionExpression)?.let { argument ->
+                        if (declaration.type.isTunable()) {
+                            if (!argument.function.isTunable()) {
+                                argument.function.annotations += createTunableAnnotation()
+                            }
+                        }
+                    }
+                    return super.visitValueParameter(declaration)
+                }
+
                 override fun visitCall(expression: IrCall): IrExpression {
                     val ownerFn = expression.symbol.owner
                     ownerFn.valueParameters.forEach { parameter ->
@@ -79,6 +109,10 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                                 }
                             }
                         }
+                    }
+                    val function = expression.symbol.owner
+                    if (function.isGetter && function.correspondingPropertySymbol?.owner?.fqNameWhenAvailable?.asString() == targetPropertyFqn) {
+                        return generateUUIDConstant(expression)
                     }
                     return super.visitCall(expression)
                 }
@@ -112,8 +146,19 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                     }
                     return super.visitConstructorCall(expression)
                 }
+
             }
         )
+//        moduleFragment.acceptChildrenVoid(
+//            object : IrVisitorVoid() {
+//                override fun visitFile(declaration: IrFile) {
+//                    super.visitFile(declaration)
+//                    if (declaration.name == "Tuner.kt") {
+//                        messageCollector.error(declaration.dump())
+//                    }
+//                }
+//            }
+//        )
         moduleFragment.transformChildrenVoid(TunerParamTransformer(pluginContext, messageCollector, runTunerCalls, tunerParams))
         moduleFragment.transformChildrenVoid(TunableTypeTransformer(pluginContext, messageCollector,
             TunableTypeRemapper(pluginContext, tunerType = pluginContext.referenceClass(TUNER_CLASS_ID)?.defaultType ?: error("Cannot find $TUNER_CLASS_ID"))))
@@ -163,15 +208,5 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                 }
             }
         )
-//        moduleFragment.acceptChildrenVoid(
-//            object : IrVisitorVoid() {
-//                override fun visitFile(declaration: IrFile) {
-//                    super.visitFile(declaration)
-//                    if (declaration.name == "TestActivity.kt") {
-//                        messageCollector.error(declaration.dump())
-//                    }
-//                }
-//            }
-//        )
     }
 }

@@ -125,13 +125,13 @@ internal class StaticProvidableTunationLocal<T>(defaultFactory: () -> T) :
         )
 }
 
-fun <T> compositionLocalOf(
+fun <T> tunationLocalOf(
     policy: SnapshotMutationPolicy<T> =
         structuralEqualityPolicy(),
     defaultFactory: () -> T
 ): ProvidableTunationLocal<T> = DynamicProvidableTunationLocal(policy, defaultFactory)
 
-fun <T> staticCompositionLocalOf(defaultFactory: () -> T): ProvidableTunationLocal<T> =
+fun <T> staticTunationLocalOf(defaultFactory: () -> T): ProvidableTunationLocal<T> =
     StaticProvidableTunationLocal(defaultFactory)
 
 fun <T> compositionLocalWithComputedDefaultOf(

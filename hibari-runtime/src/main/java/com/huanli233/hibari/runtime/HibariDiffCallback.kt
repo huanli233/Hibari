@@ -1,5 +1,6 @@
 package com.huanli233.hibari.runtime
 
+import android.util.Log
 import androidx.recyclerview.widget.DiffUtil
 import com.huanli233.hibari.ui.Attribute
 import com.huanli233.hibari.ui.AttributeKey
@@ -15,7 +16,7 @@ class HibariDiffCallback(
     private val newList: List<Node>
 ) : DiffUtil.Callback() {
 
-    data class ModifierChangePayload(val changedAttributes: List<Attribute<*>>)
+    data class ModifierChangePayload(val changedAttributes: List<Attribute<*>>, val isChildrenChanged: Boolean)
 
     override fun getOldListSize(): Int = oldList.size
     override fun getNewListSize(): Int = newList.size
@@ -39,36 +40,43 @@ class HibariDiffCallback(
         val oldViewClass = (oldMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
             ?: hibariRuntimeError("The view class cannot be null.")
         val oldAttrXml = (oldMods.firstOrNull { it is AttrsAttribute } as? AttrsAttribute)?.attrs ?: -1
-        val newViewClass = (oldMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
+        val newViewClass = (newMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
             ?: hibariRuntimeError("The view class cannot be null.")
-        val newAttrXml = (oldMods.firstOrNull { it is AttrsAttribute } as? AttrsAttribute)?.attrs ?: -1
+        val newAttrXml = (newMods.firstOrNull { it is AttrsAttribute } as? AttrsAttribute)?.attrs ?: -1
 
         if (oldViewClass != newViewClass || oldAttrXml != newAttrXml) {
             return false
         }
 
-        if (oldViewAttrs.keys != oldViewAttrs.keys) {
-            return false
-        }
-
         for (key in newViewAttrs.keys) {
-            val oldMod = oldViewAttrs.getValue(key)
-            val newMod = newViewAttrs.getValue(key)
-            if (!newMod.reuseSupported && oldMod != newMod) {
-                return false
+            val oldMod = oldViewAttrs[key]
+            val newMod = newViewAttrs[key] ?: return false
+
+            if (oldMod == null) {
+                if (!newMod.reuseSupported) return false
+            } else if (oldMod != newMod) {
+                if (!newMod.reuseSupported) return false
             }
         }
 
         for (key in newLayoutAttrs.keys) {
-            val oldMod = oldLayoutAttrs.getValue(key)
-            val newMod = newLayoutAttrs.getValue(key)
-            if (!newMod.reuseSupported && oldMod != newMod) {
-                return false
+            val oldMod = oldLayoutAttrs[key]
+            val newMod = newLayoutAttrs[key] ?: return false
+
+            if (oldMod == null) {
+                if (!newMod.reuseSupported) return false
+            } else if (oldMod != newMod) {
+                if (!newMod.reuseSupported) return false
             }
         }
 
-        return oldMods == newMods
+        if (oldNode.children != newNode.children) {
+            return false
+        }
+
+        return true
     }
+
 
     override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int): Any? {
         val oldNode = oldList[oldItemPosition]
@@ -85,48 +93,48 @@ class HibariDiffCallback(
         val oldViewClass = (oldMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
             ?: hibariRuntimeError("The view class cannot be null.")
         val oldAttrXml = (oldMods.firstOrNull { it is AttrsAttribute } as? AttrsAttribute)?.attrs ?: -1
-        val newViewClass = (oldMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
+        val newViewClass = (newMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)?.viewClass
             ?: hibariRuntimeError("The view class cannot be null.")
-        val newAttrXml = (oldMods.firstOrNull { it is AttrsAttribute } as? AttrsAttribute)?.attrs ?: -1
+        val newAttrXml = (newMods.firstOrNull { it is AttrsAttribute } as? AttrsAttribute)?.attrs ?: -1
 
         if (oldViewClass != newViewClass || oldAttrXml != newAttrXml) {
-            return null
-        }
-
-        if (oldViewAttrs.keys != oldViewAttrs.keys) {
             return null
         }
 
         val changedReusableMods = mutableListOf<Attribute<*>>()
 
         for (key in newViewAttrs.keys) {
-            val oldMod = oldViewAttrs.getValue(key)
-            val newMod = newViewAttrs.getValue(key)
+            val oldMod = oldViewAttrs[key]
+            val newMod = newViewAttrs[key] ?: return null
 
-            if (oldMod != newMod) {
-                if (!newMod.reuseSupported) {
-                    return null
-                }
+            if (oldMod == null) {
+                if (!newMod.reuseSupported) return null
+                changedReusableMods.add(newMod)
+            } else if (oldMod != newMod) {
+                if (!newMod.reuseSupported) return null
                 changedReusableMods.add(newMod)
             }
         }
 
         for (key in newLayoutAttrs.keys) {
-            val oldMod = oldLayoutAttrs.getValue(key)
-            val newMod = newLayoutAttrs.getValue(key)
+            val oldMod = oldLayoutAttrs[key]
+            val newMod = newLayoutAttrs[key] ?: return null
 
-            if (oldMod != newMod) {
-                if (!newMod.reuseSupported) {
-                    return null
-                }
+            if (oldMod == null) {
+                if (!newMod.reuseSupported) return null
+                changedReusableMods.add(newMod)
+            } else if (oldMod != newMod) {
+                if (!newMod.reuseSupported) return null
                 changedReusableMods.add(newMod)
             }
         }
 
-        return if (changedReusableMods.isNotEmpty()) {
-            ModifierChangePayload(changedReusableMods)
-        } else {
+        // 不再对 key 集合是否一致做硬性要求，而是合并检查差异是否可重用
+        return if (changedReusableMods.isEmpty() && oldNode.children == newNode.children) {
             null
+        } else {
+            ModifierChangePayload(changedReusableMods, oldNode.children != newNode.children)
         }
     }
+
 }

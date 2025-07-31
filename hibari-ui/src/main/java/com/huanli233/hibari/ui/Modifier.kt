@@ -1,5 +1,7 @@
 package com.huanli233.hibari.ui
 
+import android.util.Log
+
 interface Modifier {
     /**
      * Chains this modifier with another one.

@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.huanli233.hibari.ui.unit
 
 import com.huanli233.hibari.ui.util.floatFromBits

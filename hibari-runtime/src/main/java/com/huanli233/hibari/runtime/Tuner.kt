@@ -1,17 +1,42 @@
 package com.huanli233.hibari.runtime
 
+import android.annotation.SuppressLint
+import android.os.Build
 import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import com.huanli233.hibari.runtime.snapshots.Snapshot
 import com.huanli233.hibari.ui.HibariFactory
 import com.huanli233.hibari.ui.node.Node
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
+import org.lsposed.hiddenapibypass.HiddenApiBypass
 import java.lang.RuntimeException
 
 fun hibariRuntimeError(message: String, cause: Throwable? = null): Nothing = throw HibariRuntimeError(message, cause)
 
 class HibariRuntimeError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+
+val hibariViewId = ViewCompat.generateViewId()
+val subcomposeLayoutId = ViewCompat.generateViewId()
+@SuppressLint("PrivateApi")
+fun invokeSetKeyedTag(view: View, key: Int, tag: Any?) {
+    try {
+        val viewClass = View::class.java
+        val method = if (Build.VERSION.SDK_INT >= 28) {
+            HiddenApiBypass.getDeclaredMethod(viewClass, "setKeyedTag", Int::class.java, Any::class.java)
+        } else {
+            viewClass.getDeclaredMethod("setKeyedTag", Int::class.java, Any::class.java)
+        }
+        method.isAccessible = true
+        method.invoke(view, key, tag)
+    } catch (e: Exception) {
+        println("Error invoking setKeyedTag: ${e.message}")
+        e.printStackTrace()
+    }
+}
 
 class ProvidedValue<T> internal constructor(
     /**
@@ -47,15 +72,19 @@ class ProvidedValue<T> internal constructor(
     internal fun ifNotAlreadyProvided() = this.also { canOverride = false }
 }
 
-open class Tuner {
+open class Tuner(
+    val tunation: Tunation
+) {
 
     val coroutineScope = CoroutineScope(Dispatchers.Main)
+
+    private val nodeStack = ArrayDeque<MutableList<Node>>()
+    val rootNodes: List<Node>
+        get() = nodeStack.firstOrNull() ?: emptyList()
 
     val walker = Walker()
     var memory = mutableMapOf<String, Any?>()
     internal val localValueStacks = tunationLocalHashMapOf()
-
-    val nodes = mutableListOf<Node>()
 
     fun startGroup(key: Int) {
         walker.start(key)
@@ -63,6 +92,17 @@ open class Tuner {
 
     fun endGroup(key: Int) {
         walker.end()
+    }
+
+    fun startComposition() {
+        nodeStack.addFirst(mutableListOf())
+    }
+
+    fun endComposition(): List<Node> {
+        if (nodeStack.size != 1) {
+            hibariRuntimeError("Composition stack imbalance. Mismatched start/end calls.")
+        }
+        return nodeStack.removeFirst()
     }
 
     fun rememberedValue(): Any? {
@@ -82,7 +122,7 @@ open class Tuner {
 
             val newHolder = local.updatedStateOf(
                 providedValue as ProvidedValue<Any?>,
-                previousHolder as ValueHolder<Any?>
+                previousHolder as? ValueHolder<Any?>
             )
             stack.addFirst(newHolder)
         }
@@ -115,9 +155,14 @@ open class Tuner {
         }
     }
 
-    fun emitNode(node: Node): Node {
+    @Tunable
+    fun emitNode(node: Node, content: @Tunable () -> Unit = {}): Node {
         node.key = walker.path()
-        nodes.add(node)
+        nodeStack.addFirst(mutableListOf())
+        runTunable(content)
+        val children = nodeStack.removeFirst()
+        node.children = children
+        nodeStack.firstOrNull()?.add(node) ?: hibariRuntimeError("Cannot emit node outside of a composition.")
         return node
     }
 }
