@@ -36,6 +36,10 @@ android {
     kotlinOptions {
         jvmTarget = libs.versions.javaVersion.get()
     }
+
+    lint {
+        disable.add("WebpUnsupported")
+    }
 }
 
 dependencies {

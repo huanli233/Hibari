@@ -1,4 +1,6 @@
 [versions]
+projectVersion = "1.0.0-beta01"
+
 kotlinxCollectionsImmutable = "0.4.0"
 minSdk = "14"
 multidex = "2.0.1"

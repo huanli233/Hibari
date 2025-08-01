@@ -1,10 +1,11 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    id("com.vanniktech.maven.publish")
 }
 
 android {
-    namespace = "com.huanli233.hibari.runtime"
+    namespace = "com.huanli233.hibari.runtime.annotations"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

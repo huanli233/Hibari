@@ -24,6 +24,7 @@ tasks.named<Jar>("jar") {
 }
 
 dependencies {
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib:${libs.versions.kotlin.get()}")
     compileOnly(libs.lint.api)
     compileOnly(libs.lint.checks)
     testImplementation(libs.lint)

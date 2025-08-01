@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ksp)
+    id("com.vanniktech.maven.publish")
 }
 
 java {
@@ -21,6 +22,7 @@ dependencies {
     implementation(libs.gradle.plugin.api)
     implementation(libs.autoservice.annotations)
     ksp(libs.autoservice.ksp)
+    testImplementation(libs.junit)
 }
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.compilerOptions {
