@@ -15,7 +15,6 @@ import com.huanli233.hibari.ui.unit.Dp
 import com.huanli233.hibari.ui.unit.DpSize
 import com.huanli233.hibari.ui.unit.toPx
 import com.huanli233.hibari.ui.util.fastRoundToInt
-import com.huanli233.hibari.ui.util.toPx
 
 fun Modifier.fillMaxWidth(): Modifier {
     return thenUnitLayoutAttribute<ViewGroup.LayoutParams>(uniqueKey) {
@@ -148,4 +147,8 @@ fun Modifier.onClick(onClick: () -> Unit): Modifier {
     return this.thenViewAttribute<View, () -> Unit>(uniqueKey, onClick) {
         setOnClickListener { onClick() }
     }
+}
+
+fun Modifier.fitsSystemWindows(value: Boolean): Modifier {
+    return this.thenViewAttribute<View, Boolean>(uniqueKey, value) { this.fitsSystemWindows = it }
 }

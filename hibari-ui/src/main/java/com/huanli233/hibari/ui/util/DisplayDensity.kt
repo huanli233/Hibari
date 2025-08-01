@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package com.huanli233.hibari.ui.util
 
 import android.app.Dialog

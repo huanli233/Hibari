@@ -25,7 +25,7 @@ fun Box(
     )
 }
 
-internal object BoxScopeInstance : BoxScope {
+object BoxScopeInstance : BoxScope {
     override fun Modifier.gravity(gravity: Int) = this.thenLayoutAttribute<FrameLayout.LayoutParams, Int>(uniqueKey, gravity) { gravity, _ ->
         this.gravity = gravity
     }

@@ -1,7 +1,12 @@
 package com.huanli233.hibari.runtime
 
+import android.content.Context
+
 val currentTuner: Tuner
     @Tunable get() { throw NotImplementedError("Implemented as an intrinsic") }
+
+val currentContext: Context
+    @Tunable get() = currentTuner.tunation.hostView.context
 
 @Tunable
 inline fun <T> remember(crossinline calculation: @DisallowTunableCalls () -> T): T =

@@ -35,6 +35,7 @@ android {
 dependencies {
     api(project(":hibari-foundation"))
     api(project(":hibari-ui"))
+    api("androidx.viewpager2:viewpager2:1.0.0")
     kotlinCompilerPluginClasspath(project(":hibari-compiler"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

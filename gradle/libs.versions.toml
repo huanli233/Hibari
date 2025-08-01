@@ -1,6 +1,7 @@
 [versions]
 kotlinxCollectionsImmutable = "0.4.0"
 minSdk = "14"
+multidex = "2.0.1"
 targetSdk = "36"
 compileSdk = "36"
 
@@ -26,6 +27,7 @@ runtimeAndroid = "1.8.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-multidex = { module = "androidx.multidex:multidex", version.ref = "multidex" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerView" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
