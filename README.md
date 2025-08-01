@@ -67,6 +67,22 @@ fun Greeting(name: String) {
 
 WIP
 
+## 混淆
+Hibari 需要以下规则来确保运行时工作正常：
+
+```
+-keepclassmembers class * extends android.view.View {
+    <init>(android.content.Context);
+    <init>(android.content.Context, android.util.AttributeSet);
+    public android.view.ViewGroup$LayoutParams generateDefaultLayoutParams();
+}
+-keepclassmembers class * extends android.view.ViewGroup$LayoutParams {
+    <init>(int, int);
+}
+-keepnames class * extends android.view.View
+-keepnames class *.*$LayoutParams
+```
+
 ## TODO
 - 单次测量的 Column 和 Row‘’
 - 更友好的动画 API 
