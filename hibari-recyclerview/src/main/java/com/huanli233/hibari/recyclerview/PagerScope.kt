@@ -1,8 +1,9 @@
 package com.huanli233.hibari.recyclerview
 
-import android.content.Context
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 import com.huanli233.hibari.foundation.Node
 import com.huanli233.hibari.foundation.layout.LayoutScopeMarker
 import com.huanli233.hibari.runtime.Tunable
@@ -12,16 +13,15 @@ import com.huanli233.hibari.ui.Modifier
 import com.huanli233.hibari.ui.ref
 import com.huanli233.hibari.ui.viewClass
 
-
 @LayoutScopeMarker
-interface LazyListScope {
+interface PagerScope {
     fun item(
         key: Any? = null,
         contentType: Any? = null,
         content: @Tunable () -> Unit
     )
 
-    fun pos(
+    fun items(
         count: Int,
         key: (index: Int) -> Any? = { it },
         contentType: (index: Int) -> Any? = { null },
@@ -36,7 +36,7 @@ interface LazyListScope {
     )
 }
 
-internal class LazyListScopeImpl : LazyListScope {
+internal class PagerScopeImpl : PagerScope {
 
     private val _items = mutableListOf<LazyListItem>()
     val items: List<LazyListItem> get() = _items
@@ -55,7 +55,7 @@ internal class LazyListScopeImpl : LazyListScope {
         )
     }
 
-    override fun pos(
+    override fun items(
         count: Int,
         key: (index: Int) -> Any?,
         contentType: (index: Int) -> Any?,
@@ -91,42 +91,60 @@ internal class LazyListScopeImpl : LazyListScope {
 }
 
 @Tunable
-fun LazyList(
+fun Pager(
     modifier: Modifier = Modifier,
-    layoutManager: (Context) -> RecyclerView.LayoutManager,
-    content: LazyListScope.() -> Unit,
+    orientation: Int = ViewPager2.ORIENTATION_HORIZONTAL,
+    content: PagerScope.() -> Unit,
 ) {
     val parentTunation = currentTuner.tunation
     val adapter = remember { HibariAdapter(parentTunation) }
-    val scope = LazyListScopeImpl().apply(content)
+    val scope = PagerScopeImpl().apply(content)
     adapter.submitList(scope.items)
 
     Node(
         modifier = modifier
-            .viewClass(RecyclerView::class.java)
-            .ref {
-                if (it is RecyclerView) {
-                    it.layoutManager = layoutManager(it.context)
-                    it.adapter = adapter
+            .viewClass(ViewPager2::class.java)
+            .ref { view ->
+                if (view is ViewPager2) {
+                    view.orientation = orientation
+                    view.adapter = adapter
                 }
             }
     )
 }
 
-@Tunable
-fun LazyRow(
-    modifier: Modifier = Modifier,
-    reverseLayout: Boolean = false,
-    content: LazyListScope.() -> Unit,
-) {
-    LazyList(modifier, { context -> LinearLayoutManager(context, RecyclerView.HORIZONTAL, reverseLayout) }, content)
-}
 
 @Tunable
-fun LazyColumn(
+fun <T> FragmentPager(
     modifier: Modifier = Modifier,
-    reverseLayout: Boolean = false,
-    content: LazyListScope.() -> Unit,
+    activity: FragmentActivity,
+    items: List<T>,
+    orientation: Int = ViewPager2.ORIENTATION_HORIZONTAL,
+    key: (item: T) -> Long = { it.hashCode().toLong() },
+    fragmentFactory: (item: T) -> Fragment
 ) {
-    LazyList(modifier, { context -> LinearLayoutManager(context, RecyclerView.VERTICAL, reverseLayout) }, content)
+    val adapter = remember(items) {
+        object : FragmentStateAdapter(activity) {
+            override fun getItemCount(): Int = items.size
+
+            override fun createFragment(position: Int): Fragment = fragmentFactory(items[position])
+
+            override fun getItemId(position: Int): Long = key(items[position])
+
+            override fun containsItem(itemId: Long): Boolean = items.any { key(it) == itemId }
+        }
+    }
+
+    Node(
+        modifier = modifier
+            .viewClass(ViewPager2::class.java)
+            .ref { view ->
+                if (view is ViewPager2) {
+                    view.orientation = orientation
+                    if (view.adapter !== adapter) {
+                        view.adapter = adapter
+                    }
+                }
+            }
+    )
 }

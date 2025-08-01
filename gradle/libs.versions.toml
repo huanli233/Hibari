@@ -1,7 +1,4 @@
 [versions]
-projectVersion = "1.0.0-beta01"
-
-kotlinxCollectionsImmutable = "0.4.0"
 minSdk = "14"
 multidex = "2.0.1"
 targetSdk = "36"
@@ -21,16 +18,23 @@ appcompat = "1.6.1"
 material = "1.11.0"
 collection = "1.5.0"
 lint = "31.11.0"
+uiExtension = "1.0.6"
+viewpager2 = "1.0.0"
 yukireflection = "1.0.3"
 hiddenapibypass = "6.1"
 autoserviceAnnotations = "1.1.1"
 autoserviceKsp = "1.2.0"
 runtimeAndroid = "1.8.3"
+navigation = "2.7.7"
+kotlinxCollectionsImmutable = "0.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-multidex = { module = "androidx.multidex:multidex", version.ref = "multidex" }
+androidx-navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigation" }
+androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigation" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerView" }
+androidx-viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -42,6 +46,7 @@ lint = { group = "com.android.tools.lint", name = "lint", version.ref = "lint" }
 lint-api = { group = "com.android.tools.lint", name = "lint-api", version.ref = "lint" }
 lint-checks = { group = "com.android.tools.lint", name = "lint-checks", version.ref = "lint" }
 lint-tests = { group = "com.android.tools.lint", name = "lint-tests", version.ref = "lint" }
+ui-extension = { module = "com.huanli233.betterandroid.compat:ui-extension", version.ref = "uiExtension" }
 yukireflection = { group = "com.highcapable.yukireflection", name = "api", version.ref = "yukireflection" }
 hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypass", version.ref = "hiddenapibypass" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }

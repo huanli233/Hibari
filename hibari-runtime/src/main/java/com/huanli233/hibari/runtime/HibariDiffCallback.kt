@@ -107,7 +107,7 @@ class HibariDiffCallback(
                     Log.w(TAG, "getChangePayload(pos=$oldItemPosition) -> null, reason: Non-reusable attribute changed for key '$key'")
                     return null
                 }
-            } else { // 属性被移除
+            } else {
                 Log.w(TAG, "getChangePayload(pos=$oldItemPosition) -> null, reason: Attribute removed for key '${oldAttr?.key}'")
                 return null
             }

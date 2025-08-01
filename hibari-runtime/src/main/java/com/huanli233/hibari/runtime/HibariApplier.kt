@@ -1,7 +1,6 @@
 package com.huanli233.hibari.runtime
 
 import android.view.ViewGroup
-import com.huanli233.hibari.ui.HibariFactory
 import kotlinx.coroutines.Dispatchers
 
 object HibariApplier {

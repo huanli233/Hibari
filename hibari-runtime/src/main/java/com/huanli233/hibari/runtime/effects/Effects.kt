@@ -7,7 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Tunable
-fun LaunchedEffect(block: suspend CoroutineScope.() -> Unit) {
+fun LaunchedEffect(vararg keys: Any? = emptyArray(), block: suspend CoroutineScope.() -> Unit) {
     val coroutineScope = currentTuner.coroutineScope
-    remember { coroutineScope.launch(block = block) }
+    remember(keys) { coroutineScope.launch(block = block) }
 }

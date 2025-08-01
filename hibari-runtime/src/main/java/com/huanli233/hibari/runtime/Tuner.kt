@@ -11,6 +11,7 @@ import com.huanli233.hibari.ui.HibariFactory
 import com.huanli233.hibari.ui.node.Node
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.sync.Mutex
 import org.lsposed.hiddenapibypass.HiddenApiBypass
 import java.lang.RuntimeException
@@ -75,6 +76,7 @@ class ProvidedValue<T> internal constructor(
 open class Tuner(
     val tunation: Tunation,
     val onReadState: (Any) -> Unit = {
+        Log.d("Tuner", "onReadState: $it")
         SnapshotManager.recordRead(tunation, it)
     }
 ) {
@@ -88,6 +90,15 @@ open class Tuner(
     val walker = Walker()
     var memory = mutableMapOf<String, Any?>()
     internal val localValueStacks = tunationLocalHashMapOf()
+
+    fun dispose() {
+        memory.values.forEach { value ->
+            val rememberedValue = (value as? Pair<*, *>)?.second
+            (rememberedValue as? RememberObserver)?.onForgotten()
+        }
+        memory.clear()
+        coroutineScope.cancel()
+    }
 
     fun startGroup(key: Int) {
         walker.start(key)

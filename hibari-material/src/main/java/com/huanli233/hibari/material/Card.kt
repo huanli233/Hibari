@@ -1,15 +1,17 @@
 package com.huanli233.hibari.material
 
 import android.content.res.ColorStateList
+import android.os.Build
+import android.view.View
 import androidx.annotation.Px
 import com.google.android.material.card.MaterialCardView
 import com.huanli233.hibari.foundation.Node
-import com.huanli233.hibari.foundation.attributes.PaddingValues
 import com.huanli233.hibari.runtime.Tunable
 import com.huanli233.hibari.ui.Modifier
 import com.huanli233.hibari.ui.thenViewAttributeIfNotNull
 import com.huanli233.hibari.ui.uniqueKey
-import com.huanli233.hibari.ui.unit.Dp
+import com.huanli233.hibari.ui.unit.LayoutDirection
+import com.huanli233.hibari.ui.unit.PaddingValues
 import com.huanli233.hibari.ui.unit.toPx
 import com.huanli233.hibari.ui.viewClass
 
@@ -45,8 +47,20 @@ fun Card(
                 }
             }
             .thenViewAttributeIfNotNull<MaterialCardView, PaddingValues>(uniqueKey, contentPadding) {
-                this.setContentPadding(it.left.toPx(this),
-                    it.top.toPx(this), it.right.toPx(this), it.bottom.toPx(this)
+                val layoutDirection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                    when (this.layoutDirection) {
+                        View.LAYOUT_DIRECTION_LTR -> LayoutDirection.Ltr
+                        View.LAYOUT_DIRECTION_RTL -> LayoutDirection.Rtl
+                        else -> LayoutDirection.Ltr
+                    }
+                } else {
+                    LayoutDirection.Ltr
+                }
+                setContentPadding(
+                    contentPadding?.calculateLeftPadding(layoutDirection)?.toPx(this) ?: paddingLeft,
+                    contentPadding?.calculateTopPadding()?.toPx(this) ?: paddingTop,
+                    contentPadding?.calculateRightPadding(layoutDirection)?.toPx(this) ?: paddingRight,
+                    contentPadding?.calculateBottomPadding()?.toPx(this) ?: paddingBottom
                 )
             }
             .thenViewAttributeIfNotNull<MaterialCardView, Boolean>(uniqueKey, isClickable) {

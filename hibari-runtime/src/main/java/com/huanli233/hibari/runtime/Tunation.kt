@@ -25,5 +25,6 @@ class Tunation(
 
     fun dispose() {
         SnapshotManager.clearDependencies(this)
+        tuner?.dispose()
     }
 }

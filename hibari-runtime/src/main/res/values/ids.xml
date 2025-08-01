@@ -2,4 +2,5 @@
 <resources>
     <item name="hibari_id" type="id" />
     <item name="sub_compose_layout" type="id" />
+    <item name="consume_window_insets_tag" type="id" />
 </resources>

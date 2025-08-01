@@ -4,6 +4,7 @@ import android.os.Build
 import android.text.TextUtils
 import android.view.Gravity
 import android.widget.TextView
+import com.google.android.material.resources.TextAppearance
 import com.huanli233.hibari.ui.AttributeApplier
 import com.huanli233.hibari.ui.Modifier
 import com.huanli233.hibari.ui.ViewAttribute
@@ -97,5 +98,16 @@ fun Modifier.ellipsis(ellipsis: TextTruncateAt): Modifier {
 fun Modifier.singleLine(singleLine: Boolean): Modifier {
     return this.thenViewAttribute<TextView, Boolean>(uniqueKey, singleLine) {
         isSingleLine = it
+    }
+}
+
+fun Modifier.textAppearance(textAppearance: Int): Modifier {
+    return this.thenViewAttribute<TextView, Int>(uniqueKey, textAppearance) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            setTextAppearance(it)
+        } else {
+            @Suppress("DEPRECATION")
+            setTextAppearance(context, it)
+        }
     }
 }

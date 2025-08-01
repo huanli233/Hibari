@@ -36,6 +36,7 @@ android {
 dependencies {
     api(project(":hibari-ui"))
     api(project(":hibari-runtime-annotations"))
+    api(libs.ui.extension)
     implementation(libs.yukireflection)
     implementation(libs.hiddenapibypass)
     lintPublish(project(":hibari-runtime-lint"))

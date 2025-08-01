@@ -40,6 +40,14 @@ private class CombinedModifier(
 
     override fun then(other: Modifier): Modifier =
         if (other === Modifier) this else CombinedModifier(this, other)
+
+    override fun toString(): String {
+        return "CombinedModifier(outer=$outer, inner=$inner)"
+    }
+}
+
+inline fun <T> Modifier.runIfNotNull(value: T?, block: Modifier.(T) -> Modifier) = run {
+    if (value != null) block(value) else this
 }
 
 fun Modifier.flattenToList(): List<Modifier.Element> {

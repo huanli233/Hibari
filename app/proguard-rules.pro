@@ -19,3 +19,15 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+-keepclassmembers class * extends android.view.View {
+    <init>(android.content.Context);
+    <init>(android.content.Context, android.util.AttributeSet);
+    public android.view.ViewGroup$LayoutParams generateDefaultLayoutParams();
+}
+-keepclassmembers class * extends android.view.ViewGroup$LayoutParams {
+    <init>(int, int);
+}
+-keepnames class * extends android.view.View
+-keepnames class *.*$LayoutParams
+
+-keep class com.huanli233.hibari.sample.Note

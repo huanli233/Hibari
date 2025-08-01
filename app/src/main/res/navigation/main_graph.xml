@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_graph"
+    app:startDestination="@id/noteList">
+
+    <fragment
+        android:id="@+id/noteList"
+        android:name="com.huanli233.hibari.sample.NoteListFragment"
+        android:label="NoteListFragment" >
+
+        <action
+            android:id="@+id/action_noteList_to_noteDetail"
+            app:destination="@id/noteDetail" />
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/noteDetail"
+        android:name="com.huanli233.hibari.sample.NoteDetailFragment"
+        android:label="NoteDetailFragment">
+
+        <argument
+            android:name="note"
+            app:argType="com.huanli233.hibari.sample.Note"
+            app:nullable="true" />
+
+    </fragment>
+
+</navigation>

@@ -65,7 +65,7 @@ class Renderer(
             }
         }
 
-        internal fun generateRandomViewId() = "anonymous@${UUID.randomUUID()}"
+        fun generateRandomViewId() = "anonymous@${UUID.randomUUID()}"
     }
 
     fun render(node: Node, parent: ViewGroup): View {
@@ -75,13 +75,18 @@ class Renderer(
             ?: hibariRuntimeError("The view class cannot be null.")
         val attrXml = (modifierAttrs.firstOrNull { it is AttrsAttribute } as? AttrsAttribute)?.attrs ?: -1
         val id = (modifierAttrs.firstOrNull { it is IdAttribute } as? IdAttribute)?.id
+        val intId = (modifierAttrs.firstOrNull { it is IntIdAttribute } as? IntIdAttribute)?.id
 
         val (_, viewId) = generateViewId(id)
 
         val attrs = createAttributeSet(parent.context, attrXml)
         val view = createViewFromFactory(viewClass, parent.context, attrs) ?: getViewConstructor(viewClass, attrXml != -1)?.build(parent.context, attrs)
 
-        view?.id = viewId
+        if (intId != null) {
+            view?.id = intId
+        } else {
+            view?.id = viewId
+        }
         view?.let { view ->
             invokeSetKeyedTag(view, hibariViewId, id)
 
@@ -257,6 +262,7 @@ class LayoutParams private constructor(
          * @param parent the parent view group.
          * @return [LayoutParams]
          */
+        @Suppress("UNCHECKED_CAST")
         fun <LP : ViewGroup.LayoutParams> from(
             lpClass: Class<LP>,
             parent: ViewGroup?,
@@ -279,6 +285,7 @@ class LayoutParams private constructor(
          * @param lparams the another layout params.
          * @return [LayoutParams]
          */
+        @Suppress("UNCHECKED_CAST")
         fun <LP : ViewGroup.LayoutParams> from(
             lpClass: Class<LP>,
             parent: ViewGroup?,
