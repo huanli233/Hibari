@@ -17,7 +17,7 @@ object SnapshotManager {
 
             if (tunationsToInvalidate.isNotEmpty()) {
                 tunationsToInvalidate.forEach {
-                    GlobalRetuner.retuner.scheduleTune(it)
+                    GlobalRetuner.retuner.scheduleRetune(it)
                 }
             }
         }
@@ -28,7 +28,7 @@ object SnapshotManager {
             }
             if (tunationsToInvalidate.isNotEmpty()) {
                 tunationsToInvalidate.forEach {
-                    GlobalRetuner.retuner.scheduleTune(it)
+                    GlobalRetuner.retuner.scheduleRetune(it)
                 }
             }
         }

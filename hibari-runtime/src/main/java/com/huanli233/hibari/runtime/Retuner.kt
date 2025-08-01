@@ -1,19 +1,11 @@
 package com.huanli233.hibari.runtime
 
-import android.app.Activity
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.Choreographer
-import android.view.LayoutInflater
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
-import androidx.recyclerview.widget.ListUpdateCallback
-import com.highcapable.yukireflection.type.android.LayoutInflater_FactoryClass
 import com.huanli233.hibari.ui.HibariFactory
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -22,9 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
 import kotlin.coroutines.resume
-import kotlin.io.path.Path
 
 class Retuner(
     private val coroutineContext: CoroutineContext,
@@ -41,47 +31,26 @@ class Retuner(
         private val mainHandler = Handler(Looper.getMainLooper())
     }
 
-    fun scheduleTune(session: Tunation) {
+    fun scheduleRetune(session: Tunation) {
         if (invalidations.add(session)) {
-            start()
-        }
-    }
-
-    private fun start() {
-        if (!isRunning) {
-            isRunning = true
-            scope.launch {
-                runTuneLoop()
-            }
+            startRetuneLoop()
         }
     }
 
     fun tuneNow(session: Tunation) {
-        val tuner = session.tuner ?: Tuner(session)
-
-        val newNodeTree = tuner.run {
-            startComposition()
-            runTunable(session)
-            endComposition()
-        }
-
-        val renderer = Renderer(factories.toMutableList().apply {
-            (session.hostView.context as? Activity)?.let {
-                add(HibariFactory(it.layoutInflater))
-            } ?: add(HibariFactory(LayoutInflater.from(session.hostView.context)))
-        }, session.hostView)
-        val patcher = Patcher(renderer)
-
-        val oldNodeTree = session.lastTree
-        patcher.patch(session.hostView, oldNodeTree, newNodeTree)
-
-        session.memory = tuner.memory
-        session.localValueStacks = tuner.localValueStacks
-        session.lastTree = newNodeTree
-        session.tuner = tuner
+        TuneController.tune(session, factories)
     }
 
-    private suspend fun runTuneLoop() {
+    private fun startRetuneLoop() {
+        if (!isRunning) {
+            isRunning = true
+            scope.launch {
+                runRetuneLoop()
+            }
+        }
+    }
+
+    private suspend fun runRetuneLoop() {
         while (isRunning) {
             awaitFrame()
 
@@ -93,7 +62,7 @@ class Retuner(
 
                     sessionsToTune.forEach { session ->
                         ensureActive()
-                        tuneNow(session)
+                        TuneController.tune(session, factories)
                     }
                 }
             }
@@ -107,28 +76,26 @@ class Retuner(
     private fun drainInvalidations(): Set<Tunation> {
         val sessions = mutableSetOf<Tunation>()
         while (invalidations.isNotEmpty()) {
-            sessions.add(invalidations.poll()!!)
+            invalidations.poll()?.let { sessions.add(it) }
         }
         return sessions
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun awaitFrame() {
         return suspendCancellableCoroutine { continuation ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                 Choreographer.getInstance().postFrameCallback {
                     if (continuation.isActive) {
-                        continuation.resume(Unit) {}
+                        continuation.resume(Unit)
                     }
                 }
             } else {
                 mainHandler.postDelayed({
                     if (continuation.isActive) {
-                        continuation.resume(Unit) {}
+                        continuation.resume(Unit)
                     }
                 }, 16)
             }
         }
     }
-
 }

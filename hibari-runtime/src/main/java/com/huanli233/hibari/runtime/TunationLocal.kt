@@ -36,7 +36,6 @@ sealed class TunationLocal<T>(defaultFactory: () -> T) {
         @Tunable get() = currentTuner.consume(this)
 }
 
-@Stable
 abstract class ProvidableTunationLocal<T> internal constructor(defaultFactory: () -> T) :
     TunationLocal<T>(defaultFactory) {
     internal abstract fun defaultProvidedValue(value: T): ProvidedValue<T>

@@ -19,7 +19,6 @@ package com.huanli233.hibari.runtime.snapshots
 import android.annotation.SuppressLint
 import android.os.Parcel
 import android.os.Parcelable
-import com.huanli233.hibari.runtime.Stable
 import com.huanli233.hibari.runtime.external.kotlinx.collections.immutable.PersistentList
 import com.huanli233.hibari.runtime.external.kotlinx.collections.immutable.persistentListOf
 import com.huanli233.hibari.runtime.platform.makeSynchronizedObject
@@ -31,7 +30,6 @@ import kotlin.collections.ArrayList
  *
  * This class closely implements the same semantics as [ArrayList].
  */
-@Stable
 @SuppressLint("BanParcelableUsage")
 class SnapshotStateList<T>
 internal constructor(persistentList: PersistentList<T>) :

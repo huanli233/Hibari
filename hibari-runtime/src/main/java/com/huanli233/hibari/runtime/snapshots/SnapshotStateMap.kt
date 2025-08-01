@@ -16,7 +16,6 @@
 
 package com.huanli233.hibari.runtime.snapshots
 
-import com.huanli233.hibari.runtime.Stable
 import com.huanli233.hibari.runtime.external.kotlinx.collections.immutable.PersistentMap
 import com.huanli233.hibari.runtime.external.kotlinx.collections.immutable.persistentHashMapOf
 import com.huanli233.hibari.runtime.platform.makeSynchronizedObject
@@ -27,7 +26,6 @@ import kotlin.jvm.JvmName
  *
  * This class closely implements the same semantics as [HashMap].
  */
-@Stable
 class SnapshotStateMap<K, V> : StateObject, MutableMap<K, V> {
     override var firstStateRecord: StateRecord =
         persistentHashMapOf<K, V>().let { map ->

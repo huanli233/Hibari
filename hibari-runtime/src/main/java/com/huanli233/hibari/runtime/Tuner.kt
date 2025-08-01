@@ -73,7 +73,10 @@ class ProvidedValue<T> internal constructor(
 }
 
 open class Tuner(
-    val tunation: Tunation
+    val tunation: Tunation,
+    val onReadState: (Any) -> Unit = {
+        SnapshotManager.recordRead(tunation, it)
+    }
 ) {
 
     val coroutineScope = CoroutineScope(Dispatchers.Main)
@@ -148,7 +151,7 @@ open class Tuner(
         SnapshotManager.clearDependencies(tunation)
         Snapshot.observe(
             readObserver = {
-                SnapshotManager.recordRead(tunation, it)
+                onReadState(it)
             }
         ) {
             runTunable(tunation.content)

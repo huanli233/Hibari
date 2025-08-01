@@ -16,7 +16,6 @@
 
 package com.huanli233.hibari.runtime.snapshots
 
-import com.huanli233.hibari.runtime.Immutable
 import com.huanli233.hibari.runtime.util.fastJoinToString
 
 /**
@@ -37,7 +36,6 @@ import com.huanli233.hibari.runtime.util.fastJoinToString
  * for a particular set is not guaranteed (that is, two sets that compare equal might have different
  * field values). As snapshots does not need this, it is not implemented.
  */
-@Immutable
 internal class SnapshotIdSet
 private constructor(
     // Bit set from (lowerBound + 64)-(lowerBound+127) of the set

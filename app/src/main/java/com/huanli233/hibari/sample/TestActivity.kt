@@ -33,6 +33,7 @@ import com.huanli233.hibari.runtime.effects.LaunchedEffect
 import com.huanli233.hibari.runtime.getValue
 import com.huanli233.hibari.runtime.id
 import com.huanli233.hibari.runtime.mutableStateOf
+import com.huanli233.hibari.runtime.remember
 import com.huanli233.hibari.runtime.setValue
 import com.huanli233.hibari.ui.Modifier
 import com.huanli233.hibari.ui.unit.dp
@@ -44,13 +45,13 @@ class TestActivity: AppCompatActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val view = FrameLayout(this)
-        var username by mutableStateOf("")
-        var password by mutableStateOf("")
         HibariApplier.applyTo(view) {
             val context = currentContext
             LaunchedEffect {
                 Toast.makeText(context, "Hello, World!", Toast.LENGTH_SHORT).show()
             }
+            var username = remember { "" }
+            var password = remember { "" }
             CoordinatorLayout(
                 Modifier
                     .fillMaxSize()

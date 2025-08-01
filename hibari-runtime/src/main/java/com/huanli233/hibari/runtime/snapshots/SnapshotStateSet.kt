@@ -19,7 +19,6 @@ package com.huanli233.hibari.runtime.snapshots
 import android.annotation.SuppressLint
 import android.os.Parcel
 import android.os.Parcelable
-import com.huanli233.hibari.runtime.Stable
 import com.huanli233.hibari.runtime.external.kotlinx.collections.immutable.PersistentSet
 import com.huanli233.hibari.runtime.external.kotlinx.collections.immutable.persistentSetOf
 import com.huanli233.hibari.runtime.platform.makeSynchronizedObject
@@ -27,7 +26,6 @@ import com.huanli233.hibari.runtime.platform.makeSynchronizedObject
 /**
  * An implementation of [MutableSet] that can be observed and snapshot.
  */
-@Stable
 @SuppressLint("BanParcelableUsage")
 // Warning: The code of this class is duplicated in SnapshotStateSet.nonAndroid.kt. Any changes
 // made here should be considered to be applied there as well.

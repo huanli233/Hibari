@@ -1,6 +1,8 @@
 package com.huanli233.hibari.runtime
 
 import android.view.ViewGroup
+import com.huanli233.hibari.ui.HibariFactory
+import kotlinx.coroutines.Dispatchers
 
 object HibariApplier {
 
@@ -8,13 +10,22 @@ object HibariApplier {
         view: ViewGroup,
         tuner: Tuner? = null,
         content: @Tunable () -> Unit
-    ) {
+    ): Tunation {
         val tunation = Tunation(
             view,
             content = content,
             tuner = tuner
         )
-        GlobalRetuner.scheduleTune(tunation)
-    }
 
+        TuneController.tune(tunation)
+        return tunation
+    }
+}
+
+object GlobalRetuner {
+    val retuner: Retuner by lazy { Retuner(Dispatchers.Main, emptyList()) }
+
+    fun tuneNow(session: Tunation) {
+        retuner.tuneNow(session)
+    }
 }

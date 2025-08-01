@@ -63,7 +63,6 @@ fun <T> mutableStateOf(
  * @see [MutableState]
  * @see [mutableStateOf]
  */
-@Stable
 interface State<out T> {
     val value: T
 }
@@ -84,7 +83,6 @@ inline operator fun <T> State<T>.getValue(thisObj: Any?, property: KProperty<*>)
  * @see [State]
  * @see [mutableStateOf]
  */
-@Stable
 interface MutableState<T> : State<T> {
     override var value: T
 

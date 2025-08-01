@@ -86,7 +86,6 @@ class Patcher(val renderer: Renderer) {
                     val viewToUpdate = parentView.findViewByKey(newNode.key)
 
                     if (viewToUpdate == null) {
-                        Log.e(TAG, "  -> FATAL: Cannot find view for key ${newNode.key} to apply changes.")
                         continue
                     }
 
@@ -95,13 +94,8 @@ class Patcher(val renderer: Renderer) {
                     val nodeViewClass = (newNode.modifier.flattenToList().firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute)
                         ?.viewClass?.simpleName ?: "UnknownNode"
                     Log.i(TAG, "  -> Preparing to update view: ${viewToUpdate.javaClass.simpleName} [key=${newNode.key}] with data from node for: $nodeViewClass")
-                    if (viewToUpdate.javaClass.simpleName != nodeViewClass && nodeViewClass != "UnknownNode") {
-                        Log.e(TAG, "  -> UNEXPECTED MISMATCH! View's class differs from initial render.")
-                    }
 
                     if (payload != null && payload is HibariDiffCallback.ModifierChangePayload) {
-                        // --- 局部更新 ---
-                        Log.d(TAG, "  -> Applying PARTIAL update to ${viewToUpdate.javaClass.simpleName} at pos $currentPos")
                         if (payload.changedAttributes.isNotEmpty()) {
                             renderer.applyAttributes(viewToUpdate, payload.changedAttributes)
                         }
@@ -109,8 +103,6 @@ class Patcher(val renderer: Renderer) {
                             patch(viewToUpdate, oldNode.children, newNode.children)
                         }
                     } else {
-                        // --- 完全重新绑定 ---
-                        Log.w(TAG, "  -> Applying FULL rebind to view at pos $currentPos")
                         viewToNodeMap.remove(viewToUpdate)
                         parentView.removeViewAt(currentPos)
 
@@ -124,6 +116,5 @@ class Patcher(val renderer: Renderer) {
         }
 
         diffResult.dispatchUpdatesTo(updateCallback)
-        Log.i(TAG, "<<< Patch finished for parent: $parentId")
     }
 }
