@@ -84,10 +84,8 @@ Hibari 需要以下规则来确保运行时工作正常：
 ```
 
 ## TODO
-- 单次测量的 Column 和 Row‘’
-- 更友好的动画 API 
-- ViewPager2
-- 更多 Fragment 相关支持
+- 单次测量的布局
+- 声明式动画 API 
 
 ## Thanks
 - [Jetpack Compose](https://cs.android.com/androidx)
