@@ -1,7 +1,5 @@
 package com.huanli233.hibari.ui
 
-import android.util.Log
-
 interface Modifier {
     /**
      * Chains this modifier with another one.
@@ -42,7 +40,7 @@ private class CombinedModifier(
         if (other === Modifier) this else CombinedModifier(this, other)
 
     override fun toString(): String {
-        return "CombinedModifier(outer=$outer, inner=$inner)"
+        return "${outer}, $inner"
     }
 }
 

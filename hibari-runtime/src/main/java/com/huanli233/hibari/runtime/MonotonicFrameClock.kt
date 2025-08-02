@@ -1,7 +1,45 @@
 package com.huanli233.hibari.runtime
 
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.view.Choreographer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
+
+val DefaultMonotonicFrameClock: MonotonicFrameClock by lazy {
+    DefaultChoreographerFrameClock
+}
+
+private object DefaultChoreographerFrameClock : MonotonicFrameClock {
+    private val choreographer = runBlocking(Dispatchers.Main.immediate) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            Choreographer.getInstance()
+        } else {
+            null
+        }
+    }
+
+    override suspend fun <R> withFrameNanos(
+        onFrame: (frameTimeNanos: Long) -> R
+    ): R = suspendCancellableCoroutine<R> { co ->
+        val callback = Choreographer.FrameCallback { frameTimeNanos ->
+            co.resumeWith(runCatching { onFrame(frameTimeNanos) })
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            choreographer?.postFrameCallback(callback)
+            co.invokeOnCancellation { choreographer?.removeFrameCallback(callback) }
+        } else {
+            Handler().postDelayed({
+                co.resumeWith(runCatching { onFrame(System.currentTimeMillis()) })
+            }, 16)
+        }
+    }
+}
+
 
 interface MonotonicFrameClock : CoroutineContext.Element {
     /**
@@ -87,7 +125,7 @@ suspend fun <R> withFrameMillis(onFrame: (frameTimeMillis: Long) -> R): R =
  * if one is not present.
  */
 val CoroutineContext.monotonicFrameClock: MonotonicFrameClock
-    get() = this[MonotonicFrameClock] ?: error(
+    get() = this[MonotonicFrameClock] ?: DefaultMonotonicFrameClock ?: error(
         "A MonotonicFrameClock is not available in this CoroutineContext. Callers should supply " +
                 "an appropriate MonotonicFrameClock using withContext."
     )

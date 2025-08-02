@@ -11,6 +11,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/hibari-animation" />
             <option value="$PROJECT_DIR$/hibari-compiler" />
             <option value="$PROJECT_DIR$/hibari-foundation" />
             <option value="$PROJECT_DIR$/hibari-material" />
@@ -19,6 +20,7 @@
             <option value="$PROJECT_DIR$/hibari-runtime-annotations" />
             <option value="$PROJECT_DIR$/hibari-runtime-lint" />
             <option value="$PROJECT_DIR$/hibari-ui" />
+            <option value="$PROJECT_DIR$/hibari-ui-graphics" />
           </set>
         </option>
       </GradleProjectSettings>

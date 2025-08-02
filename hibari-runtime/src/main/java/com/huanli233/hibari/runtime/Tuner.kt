@@ -15,13 +15,16 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.sync.Mutex
 import org.lsposed.hiddenapibypass.HiddenApiBypass
 import java.lang.RuntimeException
+import kotlin.collections.hashMapOf
 
 fun hibariRuntimeError(message: String, cause: Throwable? = null): Nothing = throw HibariRuntimeError(message, cause)
 
 class HibariRuntimeError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 val hibariViewId = ViewCompat.generateViewId()
+
 val subcomposeLayoutId = ViewCompat.generateViewId()
+
 @SuppressLint("PrivateApi")
 fun invokeSetKeyedTag(view: View, key: Int, tag: Any?) {
     try {
@@ -53,10 +56,8 @@ class ProvidedValue<T> internal constructor(
     internal val isDynamic: Boolean
 ) {
     private val providedValue: T? = value
-
     @Suppress("UNCHECKED_CAST")
     val value: T get() = providedValue as T
-
     @get:JvmName("getCanOverride")
     var canOverride: Boolean = true
         private set
@@ -69,17 +70,22 @@ class ProvidedValue<T> internal constructor(
             else -> hibariRuntimeError("Unexpected form of a provided value")
         }
     internal val isStatic get() = (explicitNull || value != null) && !isDynamic
-
     internal fun ifNotAlreadyProvided() = this.also { canOverride = false }
 }
+
+data class TuneData(
+    val localValueStack: TunationLocalsHashMap,
+    val memory: Map<String, Any?>,
+)
 
 open class Tuner(
     val tunation: Tunation,
     val onReadState: (Any) -> Unit = {
-        Log.d("Tuner", "onReadState: $it")
         SnapshotManager.recordRead(tunation, it)
     }
 ) {
+    // 日志标签
+    private val TAG = "HibariTuner"
 
     val coroutineScope = CoroutineScope(Dispatchers.Main)
 
@@ -88,10 +94,15 @@ open class Tuner(
         get() = nodeStack.firstOrNull() ?: emptyList()
 
     val walker = Walker()
-    var memory = mutableMapOf<String, Any?>()
-    internal val localValueStacks = tunationLocalHashMapOf()
+    var memory = tunation.tuneData?.memory?.toMutableMap() ?: hashMapOf()
+    val localValueStacks = tunation.tuneData?.localValueStack ?: tunationLocalHashMapOf()
+
+    fun getTuneData(): TuneData {
+        return TuneData(localValueStacks, memory)
+    }
 
     fun dispose() {
+        Log.i(TAG, "dispose() called. Cancelling scope and clearing memory.")
         memory.values.forEach { value ->
             val rememberedValue = (value as? Pair<*, *>)?.second
             (rememberedValue as? RememberObserver)?.onForgotten()
@@ -101,18 +112,26 @@ open class Tuner(
     }
 
     fun startGroup(key: Int) {
+        Log.d(TAG, "startGroup(key=$key) at path '${walker.path()}'")
         walker.start(key)
     }
 
     fun endGroup(key: Int) {
+        // 在 endGroup 调用前记录路径会更直观
+        val currentPath = walker.path()
         walker.end()
+        Log.d(TAG, "endGroup() from path '$currentPath'")
     }
 
     fun startComposition() {
+        Log.i(TAG, "======== START COMPOSITION ========")
+        walker.clear()
         nodeStack.addFirst(mutableListOf())
     }
 
     fun endComposition(): List<Node> {
+        val nodeCount = nodeStack.firstOrNull()?.size ?: 0
+        Log.i(TAG, "======== END COMPOSITION (Root nodes: $nodeCount) ========")
         if (nodeStack.size != 1) {
             hibariRuntimeError("Composition stack imbalance. Mismatched start/end calls.")
         }
@@ -120,11 +139,28 @@ open class Tuner(
     }
 
     fun rememberedValue(): Any? {
-        return memory[walker.path()]
+        val path = walker.path()
+        val value = memory[path]
+        if (value != null) {
+            Log.d(TAG, "rememberedValue(): ✅ CACHE HIT for path '$path'. Value: $value")
+        } else {
+            Log.d(TAG, "rememberedValue(): ❌ CACHE MISS for path '$path'.")
+        }
+        return value
     }
 
     fun updateRememberedValue(value: Any?) {
-        memory[walker.path()] = value
+        val path = walker.path()
+        Log.d(TAG, "updateRememberedValue(): Storing value for path '$path'. New value: $value")
+        val oldValue = memory.put(path, value)
+        if (oldValue != null && oldValue != value) {
+            // 如果旧值是 RememberObserver，调用 onForgotten
+            val oldRemembered = (oldValue as? Pair<*, *>)?.second
+            (oldRemembered as? RememberObserver)?.onForgotten()
+        }
+        // 如果新值是 RememberObserver，调用 onRemembered
+        val newRemembered = (value as? Pair<*, *>)?.second
+        (newRemembered as? RememberObserver)?.onRemembered()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -153,11 +189,10 @@ open class Tuner(
         return with(localValueStacks) { tunationLocal.currentValue }
     }
 
-    fun runTunable(content: @Tunable () -> Unit) {
-        content()
-    }
+    fun <T> runTunable(content: @Tunable () -> T) = content()
 
     fun runTunable(tunation: Tunation) {
+        Log.i(TAG, ">>>>>> runTunable for [${tunation}] <<<<<<")
         walker.clear()
         SnapshotManager.clearDependencies(tunation)
         Snapshot.observe(
@@ -172,6 +207,7 @@ open class Tuner(
     @Tunable
     fun emitNode(node: Node, content: @Tunable () -> Unit = {}): Node {
         node.key = walker.path()
+        Log.d(TAG, "emitNode() at path '${node.key}'. Node: $node")
         nodeStack.addFirst(mutableListOf())
         runTunable(content)
         val children = nodeStack.removeFirst()

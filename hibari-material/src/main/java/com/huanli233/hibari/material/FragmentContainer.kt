@@ -13,6 +13,7 @@ import com.huanli233.hibari.foundation.Node
 import com.huanli233.hibari.runtime.RememberObserver
 import com.huanli233.hibari.runtime.Renderer
 import com.huanli233.hibari.runtime.Tunable
+import com.huanli233.hibari.runtime.effects.DisposableEffect
 import com.huanli233.hibari.runtime.id
 import com.huanli233.hibari.runtime.intId
 import com.huanli233.hibari.runtime.remember
@@ -71,9 +72,11 @@ fun NavHost(
             .viewClass(FragmentContainerView::class.java)
             .intId(id)
             .thenViewAttribute<FragmentContainerView, NavHostFragment>(com.huanli233.hibari.ui.uniqueKey, navHostFragment) {
-                fragmentManager.commit {
-                    add(id, navHostFragment)
-                    setPrimaryNavigationFragment(navHostFragment)
+                if (fragmentManager.findFragmentById(id) == null) {
+                    fragmentManager.commit {
+                        add(id, navHostFragment)
+                        setPrimaryNavigationFragment(navHostFragment)
+                    }
                 }
             }
     )

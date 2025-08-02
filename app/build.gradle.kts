@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.huanli233.hibari"
-        minSdk = libs.versions.minSdk.get().toInt()
+        minSdk = 21
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
@@ -45,7 +45,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":hibari-foundation"))
+    implementation(project(":hibari-animation"))
     implementation(project(":hibari-material"))
     implementation(project(":hibari-recyclerview"))
     kotlinCompilerPluginClasspath(project(":hibari-compiler"))

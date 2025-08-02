@@ -15,13 +15,11 @@ class Tunation(
         tuner: Tuner? = null,
         parent: Tunation
     ) : this(hostView, content, tuner) {
-        this.localValueStacks = parent.localValueStacks
-        this.memory = parent.memory
+        this.tuneData = parent.tuneData
     }
 
-    var localValueStacks: TunationLocalsHashMap = tunationLocalHashMapOf()
     var lastTree: List<Node> = emptyList()
-    var memory: MutableMap<String, Any?> = mutableMapOf()
+    var tuneData: TuneData? = null
 
     fun dispose() {
         SnapshotManager.clearDependencies(this)

@@ -1,5 +1,6 @@
 package com.huanli233.hibari.ui.unit
 
+import android.view.View
 import com.huanli233.hibari.ui.util.requirePrecondition
 import kotlin.ranges.coerceIn
 import kotlin.math.min
@@ -182,6 +183,16 @@ value class Constraints(
             "maxHeight($maxHeight) must be >= minHeight($minHeight)"
         }
         return createConstraints(minWidth, maxWidth, minHeight, maxHeight)
+    }
+
+    fun toWidthMeasureSpec(): Int {
+        val mode = if (minWidth == maxWidth) View.MeasureSpec.EXACTLY else View.MeasureSpec.AT_MOST
+        return View.MeasureSpec.makeMeasureSpec(maxWidth, mode)
+    }
+
+    fun toHeightMeasureSpec(): Int {
+        val mode = if (minHeight == maxHeight) View.MeasureSpec.EXACTLY else View.MeasureSpec.AT_MOST
+        return View.MeasureSpec.makeMeasureSpec(maxHeight, mode)
     }
 
     override fun toString(): String {

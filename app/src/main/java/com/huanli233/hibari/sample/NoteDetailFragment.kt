@@ -1,8 +1,6 @@
 package com.huanli233.hibari.sample
 
-import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,17 +12,15 @@ import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.transition.MaterialContainerTransform
-import com.google.android.material.transition.MaterialSharedAxis
+import com.google.android.material.transition.MaterialFade
 import com.huanli233.hibari.R
 import com.huanli233.hibari.foundation.Column
-import com.huanli233.hibari.foundation.attributes.fillMaxSize
-import com.huanli233.hibari.foundation.attributes.fillMaxWidth
 import com.huanli233.hibari.foundation.attributes.fitsSystemWindows
 import com.huanli233.hibari.foundation.attributes.margin
+import com.huanli233.hibari.foundation.attributes.matchParentSize
+import com.huanli233.hibari.foundation.attributes.matchParentWidth
 import com.huanli233.hibari.foundation.attributes.onClick
 import com.huanli233.hibari.foundation.attributes.padding
-import com.huanli233.hibari.foundation.attributes.systemBarsPadding
 import com.huanli233.hibari.material.TextField
 import com.huanli233.hibari.material.appbar.AppBarLayout
 import com.huanli233.hibari.material.appbar.MaterialToolbar
@@ -36,7 +32,6 @@ import com.huanli233.hibari.runtime.getValue
 import com.huanli233.hibari.runtime.mutableStateOf
 import com.huanli233.hibari.runtime.remember
 import com.huanli233.hibari.runtime.setValue
-import com.huanli233.hibari.runtime.viewId
 import com.huanli233.hibari.ui.Modifier
 import com.huanli233.hibari.ui.ref
 import com.huanli233.hibari.ui.unit.dp
@@ -49,8 +44,8 @@ class NoteDetailFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        returnTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
-        enterTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
+        returnTransition = MaterialFade()
+        enterTransition = MaterialFade()
     }
 
     override fun onCreateView(
@@ -62,18 +57,18 @@ class NoteDetailFragment : Fragment() {
             var title by remember { mutableStateOf(currentNote?.title.orEmpty()) }
             var content by remember { mutableStateOf(currentNote?.content.orEmpty()) }
             val view = currentView
-            CoordinatorLayout(Modifier.fillMaxSize().fitsSystemWindows(true)) {
-                AppBarLayout(Modifier.fillMaxWidth()) {
-                    MaterialToolbar(Modifier.fillMaxWidth().ref {
+            CoordinatorLayout(Modifier.matchParentSize().fitsSystemWindows(true)) {
+                AppBarLayout(Modifier.matchParentWidth()) {
+                    MaterialToolbar(Modifier.matchParentWidth().ref {
                         it as MaterialToolbar
                         it.setupWithNavController(findNavController())
                     }, title = "Note Detail")
                 }
-                Column(Modifier.fillMaxWidth().padding(16.dp).layoutBehavior(AppBarLayout.ScrollingViewBehavior())) {
-                    TextField(title, modifier = Modifier.fillMaxWidth(), label = "Title", onValueChange = { title = it })
+                Column(Modifier.matchParentWidth().padding(16.dp).layoutBehavior(AppBarLayout.ScrollingViewBehavior())) {
+                    TextField(title, modifier = Modifier.matchParentWidth(), label = "Title", onValueChange = { title = it })
                     TextField(
                         content,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.matchParentWidth()
                             .weight(1f)
                             .margin(top = 16.dp),
                         label = "Content",

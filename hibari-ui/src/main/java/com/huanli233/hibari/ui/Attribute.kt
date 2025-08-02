@@ -10,6 +10,10 @@ import com.highcapable.yukireflection.type.android.ViewGroupClass
 val uniqueKey: String
     get() { throw NotImplementedError("Implemented as an intrinsic") }
 
+fun uniqueKeyForParam(param: Any): String {
+    throw NotImplementedError("Implemented as an intrinsic")
+}
+
 data class AttributeKey<T>(val name: String)
 
 interface AttributeApplier<in V, in T> {

@@ -149,16 +149,6 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
 
             }
         )
-//        moduleFragment.acceptChildrenVoid(
-//            object : IrVisitorVoid() {
-//                override fun visitFile(declaration: IrFile) {
-//                    super.visitFile(declaration)
-//                    if (declaration.name == "Tuner.kt") {
-//                        messageCollector.error(declaration.dump())
-//                    }
-//                }
-//            }
-//        )
         moduleFragment.transformChildrenVoid(TunerParamTransformer(pluginContext, messageCollector, runTunerCalls, tunerParams))
         moduleFragment.transformChildrenVoid(TunableTypeTransformer(pluginContext, messageCollector,
             TunableTypeRemapper(pluginContext, tunerType = pluginContext.referenceClass(TUNER_CLASS_ID)?.defaultType ?: error("Cannot find $TUNER_CLASS_ID"))))
@@ -205,6 +195,16 @@ class HibariIrGenerationExtension(val messageCollector: MessageCollector): IrGen
                         }
                     }
                     return super.visitCall(expression)
+                }
+            }
+        )
+        moduleFragment.acceptChildrenVoid(
+            object : IrVisitorVoid() {
+                override fun visitFile(declaration: IrFile) {
+                    super.visitFile(declaration)
+                    if (declaration.name == "AnimatedContent.kt") {
+//                        messageCollector.error(declaration.dump())
+                    }
                 }
             }
         )

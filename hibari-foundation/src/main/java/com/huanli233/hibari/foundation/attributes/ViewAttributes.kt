@@ -10,17 +10,21 @@ import com.huanli233.hibari.ui.unit.Dp
 import com.huanli233.hibari.ui.unit.DpSize
 import com.huanli233.hibari.ui.unit.toPx
 
-fun Modifier.fillMaxWidth(): Modifier {
+fun matchParentSize(): Modifier = Modifier.matchParentSize()
+fun matchParentWidth(): Modifier = Modifier.matchParentWidth()
+fun matchParentHeight(): Modifier = Modifier.matchParentHeight()
+
+fun Modifier.matchParentWidth(): Modifier {
     return thenUnitLayoutAttribute<ViewGroup.LayoutParams>(uniqueKey) {
         width = ViewGroup.LayoutParams.MATCH_PARENT
     }
 }
-fun Modifier.fillMaxHeight(): Modifier {
+fun Modifier.matchParentHeight(): Modifier {
     return thenUnitLayoutAttribute<ViewGroup.LayoutParams>(uniqueKey) {
         height = ViewGroup.LayoutParams.MATCH_PARENT
     }
 }
-fun Modifier.fillMaxSize(): Modifier {
+fun Modifier.matchParentSize(): Modifier {
     return thenUnitLayoutAttribute<ViewGroup.LayoutParams>(uniqueKey) {
         width = ViewGroup.LayoutParams.MATCH_PARENT
         height = ViewGroup.LayoutParams.MATCH_PARENT
@@ -51,4 +55,24 @@ fun Modifier.onClick(onClick: () -> Unit): Modifier {
 
 fun Modifier.fitsSystemWindows(value: Boolean): Modifier {
     return this.thenViewAttribute<View, Boolean>(uniqueKey, value) { this.fitsSystemWindows = it }
+}
+
+fun Modifier.alpha(value: Float): Modifier {
+    return this.thenViewAttribute<View, Float>(uniqueKey, value) { this.alpha = it }
+}
+
+fun Modifier.scaleX(value: Float): Modifier {
+    return this.thenViewAttribute<View, Float>(uniqueKey, value) { this.scaleX = it }
+}
+
+fun Modifier.scaleY(value: Float): Modifier {
+    return this.thenViewAttribute<View, Float>(uniqueKey, value) { this.scaleY = it }
+}
+
+fun Modifier.translationX(value: Float): Modifier {
+    return this.thenViewAttribute<View, Float>(uniqueKey, value) { this.translationX = it }
+}
+
+fun Modifier.translationY(value: Float): Modifier {
+    return this.thenViewAttribute<View, Float>(uniqueKey, value) { this.translationY = it }
 }

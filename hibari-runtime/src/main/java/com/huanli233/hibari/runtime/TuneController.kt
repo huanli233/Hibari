@@ -8,6 +8,7 @@ object TuneController {
 
     fun tune(session: Tunation, factories: List<HibariFactory> = emptyList()) {
         val tuner = session.tuner ?: Tuner(session)
+        session.tuner = tuner
 
         val newNodeTree = tuner.run {
             startComposition()
@@ -25,9 +26,7 @@ object TuneController {
         val oldNodeTree = session.lastTree
         patcher.patch(session.hostView, oldNodeTree, newNodeTree)
 
-        session.memory = tuner.memory
-        session.localValueStacks = tuner.localValueStacks
         session.lastTree = newNodeTree
-        session.tuner = tuner
+        session.tuneData = tuner.getTuneData()
     }
 }

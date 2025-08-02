@@ -671,7 +671,7 @@ class TunerParamTransformer(
                         false
                     }
 
-                    if (!suppressGroupInjection && !isCurrentTunerCall && (wasTransformed || isEmitNodeCall)) {
+                    if (!suppressGroupInjection && !isCurrentTunerCall && fn.fqNameWhenAvailable != FqName("com.huanli233.hibari.runtime.key") && (wasTransformed || isEmitNodeCall)) {
                         return DeclarationIrBuilder(
                             context,
                             currentScope!!.scope.scopeOwnerSymbol
