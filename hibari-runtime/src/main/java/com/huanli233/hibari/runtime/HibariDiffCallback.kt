@@ -27,7 +27,6 @@ class HibariDiffCallback(
         val oldKey = oldList[oldItemPosition].key
         val newKey = newList[newItemPosition].key
         val result = Objects.equals(oldKey, newKey)
-        Log.v(TAG, "areItemsTheSame(oldPos=$oldItemPosition, newPos=$newItemPosition) -> $result | oldKey=${oldKey}, newKey=${newKey}")
         return result
     }
 
@@ -37,13 +36,11 @@ class HibariDiffCallback(
 
         val childrenSame = oldNode.children == newNode.children
         if (!childrenSame) {
-            Log.d(TAG, "areContentsTheSame(pos=$oldItemPosition) -> false, reason: CHILDREN_CHANGED")
             return false
         }
 
         val modifierSame = oldNode.modifier == newNode.modifier
         if (modifierSame) {
-            Log.d(TAG, "areContentsTheSame(pos=$oldItemPosition) -> true")
             return true
         }
 
@@ -52,7 +49,6 @@ class HibariDiffCallback(
         val newMods = newNode.modifier.flattenToList()
 
         if (oldMods.size != newMods.size) {
-            Log.d(TAG, "areContentsTheSame(pos=$oldItemPosition) -> false, reason: MODIFIER_SIZE_CHANGED (old=${oldMods.size}, new=${newMods.size})")
             return false
         }
 
@@ -63,12 +59,10 @@ class HibariDiffCallback(
                 (oldMods.firstOrNull { it is ViewClassAttribute } == newMods.firstOrNull { it is ViewClassAttribute }) &&
                 (oldMods.firstOrNull { it is AttrsAttribute } == newMods.firstOrNull { it is AttrsAttribute })
 
-        Log.d(TAG, "areContentsTheSame(pos=$oldItemPosition) -> $result, reason: DEEP_MODIFIER_COMPARISON")
         return result
     }
 
     override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int): Any? {
-        Log.d(TAG, "getChangePayload(pos=$oldItemPosition): Calculating payload...")
         val oldNode = oldList[oldItemPosition]
         val newNode = newList[newItemPosition]
 
@@ -78,7 +72,6 @@ class HibariDiffCallback(
         val oldViewClassAttr = oldMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute
         val newViewClassAttr = newMods.firstOrNull { it is ViewClassAttribute } as? ViewClassAttribute
         if (oldViewClassAttr?.viewClass != newViewClassAttr?.viewClass) {
-            Log.w(TAG, "getChangePayload(pos=$oldItemPosition) -> null, reason: VIEW_CLASS_CHANGED")
             return null
         }
 
@@ -104,11 +97,9 @@ class HibariDiffCallback(
                 if (newAttr.reuseSupported) {
                     changedReusableMods.add(newAttr)
                 } else {
-                    Log.w(TAG, "getChangePayload(pos=$oldItemPosition) -> null, reason: Non-reusable attribute changed for key '$key'")
                     return null
                 }
             } else {
-                Log.w(TAG, "getChangePayload(pos=$oldItemPosition) -> null, reason: Attribute removed for key '${oldAttr?.key}'")
                 return null
             }
         }
@@ -117,10 +108,8 @@ class HibariDiffCallback(
 
         return if (changedReusableMods.isNotEmpty() || isChildrenChanged) {
             val payload = ModifierChangePayload(changedReusableMods, isChildrenChanged)
-            Log.i(TAG, "getChangePayload(pos=$oldItemPosition) -> SUCCESS, payload=$payload")
             payload
         } else {
-            Log.e(TAG, "getChangePayload(pos=$oldItemPosition) -> null, reason: UNEXPECTED_STATE (contents differ but no reusable changes found)")
             null
         }
     }

@@ -25,11 +25,8 @@ inline fun <T> Tuner.cache(keys: Array<out Any?>, block: @DisallowTunableCalls (
     @Suppress("UNCHECKED_CAST")
     val entry = remembered as? Pair<Array<out Any?>, T>
 
-    // TODO
-    val key = currentTuner.walker.path() + "-${uniqueKey}"
     @Suppress("UNCHECKED_CAST")
-    val invalid = entry == null || keys.contentEquals(currentTuner.memory[key] as? Array<Any> ?: emptyArray())
-    currentTuner.memory[key] = keys
+    val invalid = entry == null || (keys.isNotEmpty() && !keys.contentDeepEquals(entry.first))
 
     return if (invalid) {
         (entry?.second as? RememberObserver)?.onForgotten()
@@ -40,19 +37,18 @@ inline fun <T> Tuner.cache(keys: Array<out Any?>, block: @DisallowTunableCalls (
         (value as? RememberObserver)?.onRemembered()
         value
     } else {
-        Log.d("huanli233", "return cached value")
         entry.second
     }
 }
 
 @Tunable
-fun <T> key(
+inline fun <T> key(
     @Suppress("UNUSED_PARAMETER")
-    vararg keys: Any?,
+    key: Any?,
     block: @Tunable () -> T
 ) = run {
-    currentTuner.startGroup(keys.hashCode())
+    currentTuner.startGroup(key.hashCode())
     val result = block()
-    currentTuner.endGroup(keys.hashCode())
+    currentTuner.endGroup(key.hashCode())
     result
 }

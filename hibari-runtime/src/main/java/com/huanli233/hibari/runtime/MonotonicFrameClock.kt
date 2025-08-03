@@ -33,7 +33,7 @@ private object DefaultChoreographerFrameClock : MonotonicFrameClock {
             choreographer?.postFrameCallback(callback)
             co.invokeOnCancellation { choreographer?.removeFrameCallback(callback) }
         } else {
-            Handler().postDelayed({
+            Handler(Looper.getMainLooper()).postDelayed({
                 co.resumeWith(runCatching { onFrame(System.currentTimeMillis()) })
             }, 16)
         }

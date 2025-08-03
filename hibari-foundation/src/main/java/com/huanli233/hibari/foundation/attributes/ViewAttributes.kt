@@ -2,6 +2,7 @@ package com.huanli233.hibari.foundation.attributes
 
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import com.huanli233.hibari.ui.Modifier
 import com.huanli233.hibari.ui.thenUnitLayoutAttribute
 import com.huanli233.hibari.ui.thenViewAttribute
@@ -75,4 +76,8 @@ fun Modifier.translationX(value: Float): Modifier {
 
 fun Modifier.translationY(value: Float): Modifier {
     return this.thenViewAttribute<View, Float>(uniqueKey, value) { this.translationY = it }
+}
+
+fun Modifier.elevation(value: Float): Modifier {
+    return this.thenViewAttribute<View, Float>(uniqueKey, value) { ViewCompat.setElevation(this, it) }
 }

@@ -4,18 +4,13 @@ import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import com.huanli233.hibari.runtime.snapshots.Snapshot
-import com.huanli233.hibari.ui.HibariFactory
 import com.huanli233.hibari.ui.node.Node
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.sync.Mutex
 import org.lsposed.hiddenapibypass.HiddenApiBypass
-import java.lang.RuntimeException
-import kotlin.collections.hashMapOf
 
 fun hibariRuntimeError(message: String, cause: Throwable? = null): Nothing = throw HibariRuntimeError(message, cause)
 
@@ -84,7 +79,6 @@ open class Tuner(
         SnapshotManager.recordRead(tunation, it)
     }
 ) {
-    // 日志标签
     private val TAG = "HibariTuner"
 
     val coroutineScope = CoroutineScope(Dispatchers.Main)
@@ -102,7 +96,6 @@ open class Tuner(
     }
 
     fun dispose() {
-        Log.i(TAG, "dispose() called. Cancelling scope and clearing memory.")
         memory.values.forEach { value ->
             val rememberedValue = (value as? Pair<*, *>)?.second
             (rememberedValue as? RememberObserver)?.onForgotten()
@@ -112,15 +105,12 @@ open class Tuner(
     }
 
     fun startGroup(key: Int) {
-        Log.d(TAG, "startGroup(key=$key) at path '${walker.path()}'")
         walker.start(key)
     }
 
     fun endGroup(key: Int) {
-        // 在 endGroup 调用前记录路径会更直观
         val currentPath = walker.path()
         walker.end()
-        Log.d(TAG, "endGroup() from path '$currentPath'")
     }
 
     fun startComposition() {
@@ -138,27 +128,25 @@ open class Tuner(
         return nodeStack.removeFirst()
     }
 
+    fun rememberedKeys(): Any? {
+        val path = walker.path()
+        val value = memory[path]
+        return value
+    }
+
     fun rememberedValue(): Any? {
         val path = walker.path()
         val value = memory[path]
-        if (value != null) {
-            Log.d(TAG, "rememberedValue(): ✅ CACHE HIT for path '$path'. Value: $value")
-        } else {
-            Log.d(TAG, "rememberedValue(): ❌ CACHE MISS for path '$path'.")
-        }
         return value
     }
 
     fun updateRememberedValue(value: Any?) {
         val path = walker.path()
-        Log.d(TAG, "updateRememberedValue(): Storing value for path '$path'. New value: $value")
         val oldValue = memory.put(path, value)
         if (oldValue != null && oldValue != value) {
-            // 如果旧值是 RememberObserver，调用 onForgotten
             val oldRemembered = (oldValue as? Pair<*, *>)?.second
             (oldRemembered as? RememberObserver)?.onForgotten()
         }
-        // 如果新值是 RememberObserver，调用 onRemembered
         val newRemembered = (value as? Pair<*, *>)?.second
         (newRemembered as? RememberObserver)?.onRemembered()
     }
@@ -195,13 +183,15 @@ open class Tuner(
         Log.i(TAG, ">>>>>> runTunable for [${tunation}] <<<<<<")
         walker.clear()
         SnapshotManager.clearDependencies(tunation)
-        Snapshot.observe(
+        val snapshot = Snapshot.takeMutableSnapshot(
             readObserver = {
                 onReadState(it)
             }
-        ) {
+        )
+        snapshot.enter {
             runTunable(tunation.content)
         }
+        snapshot.apply()
     }
 
     @Tunable

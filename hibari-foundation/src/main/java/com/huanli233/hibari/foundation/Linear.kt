@@ -3,6 +3,7 @@ package com.huanli233.hibari.foundation
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import com.huanli233.hibari.foundation.attributes.LinearOrientation
+import com.huanli233.hibari.foundation.attributes.matchParentSize
 import com.huanli233.hibari.foundation.attributes.orientation
 import com.huanli233.hibari.foundation.layout.LayoutScopeMarker
 import com.huanli233.hibari.runtime.Tunable

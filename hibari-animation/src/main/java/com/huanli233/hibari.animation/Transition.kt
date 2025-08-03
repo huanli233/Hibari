@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 The Android Open Source Project
  *
@@ -17,6 +16,8 @@
 
 package com.huanli233.hibari.animation
 
+import android.annotation.SuppressLint
+import android.util.Log
 import androidx.annotation.FloatRange
 import androidx.annotation.RestrictTo
 import androidx.collection.MutableObjectList
@@ -25,14 +26,18 @@ import com.huanli233.hibari.runtime.derivedStateOf
 import com.huanli233.hibari.runtime.effects.DisposableEffect
 import com.huanli233.hibari.runtime.effects.LaunchedEffect
 import com.huanli233.hibari.runtime.effects.rememberCoroutineScope
-import com.huanli233.hibari.runtime.State
 import com.huanli233.hibari.runtime.getValue
 import com.huanli233.hibari.runtime.mutableStateListOf
 import com.huanli233.hibari.runtime.mutableStateOf
 import com.huanli233.hibari.runtime.remember
+import com.huanli233.hibari.runtime.State
+import com.huanli233.hibari.runtime.currentTuner
 import com.huanli233.hibari.runtime.setValue
 import com.huanli233.hibari.runtime.snapshots.Snapshot
 import com.huanli233.hibari.runtime.snapshots.SnapshotStateObserver
+import com.huanli233.hibari.runtime.util.fastAny
+import com.huanli233.hibari.runtime.util.fastFold
+import com.huanli233.hibari.runtime.util.fastForEach
 import com.huanli233.hibari.runtime.withFrameNanos
 import com.huanli233.hibari.ui.unit.Dp
 import com.huanli233.hibari.ui.unit.IntOffset
@@ -54,7 +59,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.collections.get
 import kotlin.collections.set
 import kotlin.compareTo
 
@@ -83,7 +87,7 @@ fun <T> updateTransition(targetState: T, label: String? = null): Transition<T> {
     val transition = remember { Transition(targetState, label = label) }
     transition.animateTo(targetState)
     DisposableEffect(transition) {
-         {
+        {
             // Clean up on the way out, to ensure the observers are not stuck in an in-between
             // state.
             transition.onDisposed()
@@ -637,7 +641,7 @@ class SeekableTransitionState<S>(initialState: S) : TransitionState<S>() {
                                     } else {
                                         oldDurationNanos
                                     } / (1000f * MillisToNanos)
-                                if (oldDuration  < 0L) {
+                                if (oldDuration < 0L) {
                                     oldVelocity = ZeroVelocity
                                 } else {
                                     oldVelocity = AnimationVector1D(1f / oldDuration)
@@ -901,6 +905,8 @@ internal constructor(
         label: String? = null,
     ) : this(transitionState as TransitionState<S>, null, label)
 
+    private var ended: Boolean = false
+
     /**
      * Current state of the transition. This will always be the initialState of the transition until
      * the transition is finished. Once the transition is finished, [currentState] will be = to
@@ -981,8 +987,8 @@ internal constructor(
     @get:Suppress("GetterSetterNames") // Don't care about Java name for this property
     val hasInitialValueAnimations: Boolean
         get() =
-            _animations.any { it.initialValueState != null } ||
-                    _transitions.any { it.hasInitialValueAnimations }
+            _animations.fastAny { it.initialValueState != null } ||
+                    _transitions.fastAny { it.hasInitialValueAnimations }
 
     /**
      * Total duration of the [Transition], accounting for all the animations and child transitions
@@ -996,8 +1002,8 @@ internal constructor(
 
     private fun calculateTotalDurationNanos(): Long {
         var maxDurationNanos = 0L
-        _animations.forEach { maxDurationNanos = max(maxDurationNanos, it.durationNanos) }
-        _transitions.forEach {
+        _animations.fastForEach { maxDurationNanos = max(maxDurationNanos, it.durationNanos) }
+        _transitions.fastForEach {
             maxDurationNanos = max(maxDurationNanos, it.calculateTotalDurationNanos())
         }
         return maxDurationNanos
@@ -1029,7 +1035,7 @@ internal constructor(
 
         var allFinished = true
         // Pulse new playtime
-        _animations.forEach {
+        _animations.fastForEach {
             if (!it.isFinished) {
                 it.onPlayTimeChanged(scaledPlayTimeNanos, scaleToEnd)
             }
@@ -1038,7 +1044,7 @@ internal constructor(
                 allFinished = false
             }
         }
-        _transitions.forEach {
+        _transitions.fastForEach {
             if (it.targetState != it.currentState) {
                 it.onFrame(scaledPlayTimeNanos, scaleToEnd)
             }
@@ -1069,13 +1075,16 @@ internal constructor(
 
     // onTransitionStart and onTransitionEnd are symmetric. Both are called from onFrame
     internal fun onTransitionEnd() {
-        startTimeNanos = AnimationConstants.UnspecifiedTime
-        if (transitionState is MutableTransitionState) {
-            transitionState.currentState = targetState
+        if (!ended) {
+            startTimeNanos = AnimationConstants.UnspecifiedTime
+            if (transitionState is MutableTransitionState) {
+                transitionState.currentState = targetState
+            }
+            playTimeNanos = 0
+            transitionState.isRunning = false
+            ended = true
+            _transitions.fastForEach { it.onTransitionEnd() }
         }
-        playTimeNanos = 0
-        transitionState.isRunning = false
-        _transitions.forEach { it.onTransitionEnd() }
     }
 
     /**
@@ -1112,7 +1121,7 @@ internal constructor(
             segment = SegmentImpl(initialState, targetState)
         }
 
-        _transitions.forEach {
+        _transitions.fastForEach {
             @Suppress("UNCHECKED_CAST")
             (it as Transition<Any>).let {
                 if (it.isSeeking) {
@@ -1125,7 +1134,7 @@ internal constructor(
             }
         }
 
-        _animations.forEach { it.seekTo(playTimeNanos) }
+        _animations.fastForEach { it.seekTo(playTimeNanos) }
         lastSeekedTimeNanos = playTimeNanos
     }
 
@@ -1159,13 +1168,13 @@ internal constructor(
             // If target state is changed, reset all the animations to be re-created in the
             // next frame w/ their new target value. Child animations target values are updated in
             // the side effect that may not have happened when this function in invoked.
-            _animations.forEach { it.resetAnimation() }
+            _animations.fastForEach { it.resetAnimation() }
         }
     }
 
     // This should only be called if PlayTime comes from clock directly, instead of from a parent
     // Transition.
-    @Suppress("TunableNaming")
+    @SuppressLint("TunableNamingDetector")
     @Tunable
     internal fun animateTo(targetState: S) {
         if (!isSeeking) {
@@ -1178,6 +1187,7 @@ internal constructor(
                     this.targetState != currentState || isRunning || updateChildrenNeeded
                 }
             }
+            ended = false
             if (runFrameLoop) {
                 // We're using a composition-obtained scope + DisposableEffect here to give us
                 // control over coroutine dispatching
@@ -1197,8 +1207,8 @@ internal constructor(
                                 }
                             }
                         }
-                    };
-                    {}
+                    }
+                    ; {}
                 }
             }
         }
@@ -1216,8 +1226,8 @@ internal constructor(
         updateChildrenNeeded = false
 
         // Pulse new playtime
-        _animations.forEach { it.seekTo(playTimeNanos) }
-        _transitions.forEach {
+        _animations.fastForEach { it.seekTo(playTimeNanos) }
+        _transitions.fastForEach {
             if (it.targetState != it.currentState) {
                 it.seekAnimations(playTimeNanos)
             }
@@ -1232,8 +1242,8 @@ internal constructor(
     internal fun setInitialAnimations(
         animationState: SeekableTransitionState.SeekingAnimationState
     ) {
-        _animations.forEach { it.setInitialValueAnimation(animationState) }
-        _transitions.forEach { it.setInitialAnimations(animationState) }
+        _animations.fastForEach { it.setInitialValueAnimation(animationState) }
+        _transitions.fastForEach { it.setInitialAnimations(animationState) }
     }
 
     /**
@@ -1241,14 +1251,14 @@ internal constructor(
      * are no longer valid.
      */
     internal fun resetAnimationFraction(fraction: Float) {
-        _animations.forEach { it.resetAnimationValue(fraction) }
-        _transitions.forEach { it.resetAnimationFraction(fraction) }
+        _animations.fastForEach { it.resetAnimationValue(fraction) }
+        _transitions.fastForEach { it.resetAnimationFraction(fraction) }
     }
 
     /** Clears all initial value animations. */
     internal fun clearInitialAnimations() {
-        _animations.forEach { it.clearInitialAnimation() }
-        _transitions.forEach { it.clearInitialAnimations() }
+        _animations.fastForEach { it.clearInitialAnimation() }
+        _transitions.fastForEach { it.clearInitialAnimations() }
     }
 
     /**
@@ -1258,20 +1268,20 @@ internal constructor(
      *   anything.
      */
     internal fun updateInitialValues() {
-        _animations.forEach { it.updateInitialValue() }
-        _transitions.forEach { it.updateInitialValues() }
+        _animations.fastForEach { it.updateInitialValue() }
+        _transitions.fastForEach { it.updateInitialValues() }
     }
 
     override fun toString(): String {
-        return animations.fold("Transition animation values: ") { acc, anim -> "$acc$anim, " }
+        return animations.fastFold("Transition animation values: ") { acc, anim -> "$acc$anim, " }
     }
-    
+
     private fun onChildAnimationUpdated() {
         updateChildrenNeeded = true
         if (isSeeking) {
             // Update total duration
             var maxDurationNanos = 0L
-            _animations.forEach {
+            _animations.fastForEach {
                 maxDurationNanos = max(maxDurationNanos, it.durationNanos)
                 it.seekTo(lastSeekedTimeNanos)
             }
@@ -1769,8 +1779,8 @@ internal fun <S, T> Transition<S>.createChildTransitionInternal(
         }
 
     DisposableEffect(transition) {
-        addTransition(transition) ;
-        { removeTransition(transition) }
+        addTransition(transition)
+        ; { removeTransition(transition) }
     }
 
     if (isSeeking) {
@@ -1875,7 +1885,8 @@ internal fun <S, T, V : AnimationVector> Transition<S>.createTransitionAnimation
 
     DisposableEffect(transitionAnimation) {
         addAnimation(transitionAnimation)
-        ;{ removeAnimation(transitionAnimation) }
+        ; {
+            removeAnimation(transitionAnimation) }
     }
     return transitionAnimation
 }

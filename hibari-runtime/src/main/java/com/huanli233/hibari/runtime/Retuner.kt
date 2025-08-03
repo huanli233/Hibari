@@ -52,23 +52,23 @@ class Retuner(
 
     private suspend fun runRetuneLoop() {
         while (isRunning) {
-            awaitFrame()
+            withFrameNanos {
+                if (invalidations.isNotEmpty()) {
+                    currentTuneJob?.cancel("A new Tune was scheduled")
 
-            if (invalidations.isNotEmpty()) {
-                currentTuneJob?.cancel("A new Tune was scheduled")
+                    currentTuneJob = scope.launch {
+                        val sessionsToTune = drainInvalidations()
 
-                currentTuneJob = scope.launch {
-                    val sessionsToTune = drainInvalidations()
-
-                    sessionsToTune.forEach { session ->
-                        ensureActive()
-                        TuneController.tune(session, factories)
+                        sessionsToTune.forEach { session ->
+                            ensureActive()
+                            TuneController.tune(session, factories)
+                        }
                     }
                 }
-            }
 
-            if (invalidations.isEmpty()) {
-                isRunning = false
+                if (invalidations.isEmpty()) {
+                    isRunning = false
+                }
             }
         }
     }

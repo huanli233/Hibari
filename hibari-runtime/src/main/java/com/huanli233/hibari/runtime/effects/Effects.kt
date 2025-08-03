@@ -1,5 +1,6 @@
 package com.huanli233.hibari.runtime.effects
 
+import android.util.Log
 import com.huanli233.hibari.runtime.DisallowTunableCalls
 import com.huanli233.hibari.runtime.RememberObserver
 import com.huanli233.hibari.runtime.Tunable
@@ -17,7 +18,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 @Tunable
 fun LaunchedEffect(vararg keys: Any? = emptyArray(), block: suspend CoroutineScope.() -> Unit) {
     val coroutineScope = currentTuner.coroutineScope
-    remember(keys) { coroutineScope.launch(block = block) }
+    remember(*keys) { coroutineScope.launch(block = block) }
 }
 
 @PublishedApi

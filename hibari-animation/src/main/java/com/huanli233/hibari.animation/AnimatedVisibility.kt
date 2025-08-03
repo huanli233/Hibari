@@ -106,8 +106,7 @@ interface AnimatedVisibilityScope {
 }
 
 internal class AnimatedVisibilityScopeImpl
-internal constructor(transition: Transition<EnterExitState>) : AnimatedVisibilityScope {
-    override var transition = transition
+internal constructor(override var transition: Transition<EnterExitState>) : AnimatedVisibilityScope {
     internal val targetSize = mutableStateOf(IntSize.Zero)
     @Tunable
     override fun Modifier.animateEnterExit(
@@ -201,7 +200,6 @@ internal constructor(transition: Transition<EnterExitState>) : AnimatedVisibilit
             }
         }
 
-        // 3. Chain modifiers to apply animated values to the View
         return this
             .thenViewAttribute<View, Float>(uniqueKey, animatedAlpha.value) { alphaValue ->
                 if (E.fade != null || X.fade != null) this.alpha = alphaValue
@@ -245,7 +243,7 @@ internal fun <T> AnimatedVisibilityImpl(
 ) {
     AnimatedEnterExitImpl(
         transition = transition,
-        modifier = Modifier,
+        modifier = modifier,
         visible = visible,
         enter = enter,
         exit = exit,
@@ -304,8 +302,10 @@ internal fun <T> AnimatedEnterExitImpl(
 
         if (!childTransition.exitFinished || !shouldDisposeAfterExit) {
             val scope = remember(transition) { AnimatedVisibilityScopeImpl(childTransition) }
-            Box {
-                scope.content()
+            with(scope) {
+                Box(modifier = modifier.animateEnterExit(enter, exit, "AnimateEnterExit")) {
+                    content()
+                }
             }
         }
     }

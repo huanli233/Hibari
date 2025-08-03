@@ -6,26 +6,25 @@ import android.view.Gravity
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.fragment.NavHostFragment
-import com.huanli233.hibari.R
-import com.huanli233.hibari.animation.Crossfade
-import com.huanli233.hibari.animation.animateFloatAsState
+import com.huanli233.hibari.animation.AnimatedVisibility
+import com.huanli233.hibari.animation.animateFloat
+import com.huanli233.hibari.animation.updateTransition
 import com.huanli233.hibari.foundation.Box
+import com.huanli233.hibari.foundation.Column
+import com.huanli233.hibari.foundation.attributes.alpha
 import com.huanli233.hibari.foundation.attributes.matchParentSize
+import com.huanli233.hibari.foundation.attributes.matchParentWidth
 import com.huanli233.hibari.foundation.attributes.onClick
 import com.huanli233.hibari.foundation.attributes.scaleX
 import com.huanli233.hibari.foundation.attributes.scaleY
-import com.huanli233.hibari.material.NavHost
 import com.huanli233.hibari.material.Text
 import com.huanli233.hibari.runtime.HibariView
 import com.huanli233.hibari.runtime.currentContext
 import com.huanli233.hibari.runtime.effects.LaunchedEffect
 import com.huanli233.hibari.runtime.getValue
 import com.huanli233.hibari.runtime.mutableStateOf
-import com.huanli233.hibari.runtime.remember
 import com.huanli233.hibari.runtime.setValue
 import com.huanli233.hibari.ui.Modifier
-import kotlinx.coroutines.delay
 
 class TestActivity: AppCompatActivity() {
 
@@ -42,22 +41,30 @@ class TestActivity: AppCompatActivity() {
                 }
                 LaunchedEffect {
                     showContent = false
-                    delay(3000)
-                    showContent = true
                 }
-                val scale by animateFloatAsState(if (showContent) 1.5f else 3f)
+                val transition = updateTransition(showContent)
+                val scale by transition.animateFloat {
+                    if (it) 3f else 1.5f
+                }
+                val alpha by transition.animateFloat {
+                    if (it) 1f else 0.5f
+                }
                 Box(modifier = Modifier.matchParentSize().onClick { showContent = !showContent }) {
-                    Crossfade(showContent, Modifier.matchParentSize()) {
-                        if (!it) {
-                            Text(
-                                "Hello, World!",
-                                Modifier.gravity(Gravity.CENTER).scaleX(scale).scaleY(scale)
-                            )
-                        } else {
-                            Text(
-                                "World, Hello!",
-                                Modifier.gravity(Gravity.CENTER).scaleX(scale).scaleY(scale)
-                            )
+                    val textModifier = Modifier.gravity(Gravity.CENTER).scaleX(scale).scaleY(scale).alpha(alpha)
+                    if (!showContent) {
+                        Text(
+                            "Hello, World!",
+                            textModifier
+                        )
+                    } else {
+                        Text(
+                            "World, Hello!",
+                            textModifier
+                        )
+                    }
+                    Column(matchParentWidth().gravity(Gravity.CENTER)) {
+                        AnimatedVisibility(showContent, matchParentSize()) {
+                            Text("test")
                         }
                     }
                 }
