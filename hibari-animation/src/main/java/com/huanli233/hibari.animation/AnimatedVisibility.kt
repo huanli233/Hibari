@@ -30,7 +30,20 @@ import com.huanli233.hibari.ui.unit.IntOffset
 import com.huanli233.hibari.ui.unit.IntSize
 
 @Tunable
-public fun ColumnScope.AnimatedVisibility(
+fun AnimatedVisibility(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    enter: EnterTransition = fadeIn() + expandIn(),
+    exit: ExitTransition = shrinkOut() + fadeOut(),
+    label: String = "AnimatedVisibility",
+    content: @Tunable AnimatedVisibilityScope.() -> Unit,
+) {
+    val transition = updateTransition(visible, label)
+    AnimatedVisibilityImpl(transition, { it }, modifier, enter, exit, content = content)
+}
+
+@Tunable
+fun ColumnScope.AnimatedVisibility(
     visible: Boolean,
     modifier: Modifier = Modifier,
     enter: EnterTransition = fadeIn() + expandVertically(),
@@ -265,7 +278,6 @@ internal fun <T> AnimatedEnterExitImpl(
     enter: EnterTransition,
     exit: ExitTransition,
     shouldDisposeBlock: (EnterExitState, EnterExitState) -> Boolean,
-    onLookaheadMeasured: OnLookaheadMeasured? = null,
     content: @Tunable() AnimatedVisibilityScope.() -> Unit,
 ) {
     if (

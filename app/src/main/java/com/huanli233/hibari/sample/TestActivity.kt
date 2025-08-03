@@ -7,7 +7,10 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.huanli233.hibari.animation.AnimatedVisibility
+import com.huanli233.hibari.animation.MutableTransitionState
 import com.huanli233.hibari.animation.animateFloat
+import com.huanli233.hibari.animation.fadeIn
+import com.huanli233.hibari.animation.fadeOut
 import com.huanli233.hibari.animation.updateTransition
 import com.huanli233.hibari.foundation.Box
 import com.huanli233.hibari.foundation.Column
@@ -23,6 +26,7 @@ import com.huanli233.hibari.runtime.currentContext
 import com.huanli233.hibari.runtime.effects.LaunchedEffect
 import com.huanli233.hibari.runtime.getValue
 import com.huanli233.hibari.runtime.mutableStateOf
+import com.huanli233.hibari.runtime.remember
 import com.huanli233.hibari.runtime.setValue
 import com.huanli233.hibari.ui.Modifier
 
@@ -63,7 +67,12 @@ class TestActivity: AppCompatActivity() {
                         )
                     }
                     Column(matchParentWidth().gravity(Gravity.CENTER)) {
-                        AnimatedVisibility(showContent, matchParentSize()) {
+                        AnimatedVisibility(
+                            showContent,
+                            matchParentSize(),
+                            enter = fadeIn(),
+                            exit = fadeOut(),
+                        ) {
                             Text("test")
                         }
                     }
